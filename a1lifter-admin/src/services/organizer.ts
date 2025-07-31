@@ -34,15 +34,16 @@ export interface OrganizerDashboardData {
 export const organizerService = {
   // Ottieni dati completi dashboard organizzatore
   async getOrganizerDashboard(competitionId: string): Promise<OrganizerDashboardData> {
-    const [competition, registrations, results] = await Promise.all([
-      competitionsService.getCompetition(competitionId),
-      competitionsService.getRegistrations(competitionId),
-      resultsService.getResultsWithAthletes(competitionId)
-    ]);
+    try {
+      const [competition, registrations, results] = await Promise.all([
+        competitionsService.getCompetition(competitionId),
+        competitionsService.getRegistrations(competitionId),
+        resultsService.getResultsWithAthletes(competitionId)
+      ]);
 
-    if (!competition) {
-      throw new Error('Competizione non trovata');
-    }
+      if (!competition) {
+        throw new Error('Competizione non trovata');
+      }
 
     // Calcola statistiche
     const totalRegistrations = registrations.length;
@@ -97,22 +98,26 @@ export const organizerService = {
     // Ordina timeline per timestamp
     timeline.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    return {
-      competition,
-      registrations,
-      results,
-      stats: {
-        totalRegistrations,
-        confirmedRegistrations,
-        pendingRegistrations,
-        totalResults,
-        completedAthletes,
-        averageScore,
-        topScore,
-        categoriesProgress,
-      },
-      timeline: timeline.slice(0, 15), // Ultimi 15 eventi
-    };
+      return {
+        competition,
+        registrations,
+        results,
+        stats: {
+          totalRegistrations,
+          confirmedRegistrations,
+          pendingRegistrations,
+          totalResults,
+          completedAthletes,
+          averageScore,
+          topScore,
+          categoriesProgress,
+        },
+        timeline: timeline.slice(0, 15), // Ultimi 15 eventi
+      };
+    } catch (error) {
+      console.error('Error in getOrganizerDashboard:', error);
+      throw error;
+    }
   },
 
   // Ottieni atleti mancanti (iscritti ma senza risultati)

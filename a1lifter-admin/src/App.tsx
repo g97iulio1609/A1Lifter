@@ -9,6 +9,18 @@ import { AthletesPage } from '@/pages/athletes/AthletesPage';
 import { CompetitionsPage } from '@/pages/competitions/CompetitionsPage';
 import { ResultsPage } from '@/pages/results/ResultsPage';
 import { OrganizerPage } from '@/pages/organizer/OrganizerPage';
+import { RegistrationsPage } from '@/pages/registrations/RegistrationsPage';
+import { PublicCompetitionsPage } from '@/pages/public/PublicCompetitionsPage';
+import { CompetitionRegistrationPage } from '@/pages/public/CompetitionRegistrationPage';
+import { LoginPage } from '@/pages/LoginPage';
+import JudgesPage from '@/pages/judges/JudgesPage';
+import WeighInPage from '@/pages/weigh-in/WeighInPage';
+import LivePage from '@/pages/live/LivePage';
+import RecordsPage from '@/pages/records/RecordsPage';
+import BackupPage from '@/pages/backup/BackupPage';
+import NotificationsPage from '@/pages/notifications/NotificationsPage';
+import SettingsPage from '@/pages/settings/SettingsPage';
+import JudgeInterfacePage from '@/pages/judge/JudgeInterfacePage';
 
 function App() {
   return (
@@ -16,8 +28,14 @@ function App() {
       <AuthProvider>
         <Router>
         <Routes>
-          <Route path="/login" element={<div>Login page placeholder</div>} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Rotte pubbliche */}
+          <Route path="/public/competitions" element={<PublicCompetitionsPage />} />
+          <Route path="/register/:competitionId" element={<CompetitionRegistrationPage />} />
+          
+          {/* Autenticazione */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/public/competitions" replace />} />
           <Route
             path="/dashboard"
             element={
@@ -69,12 +87,108 @@ function App() {
             }
           />
           <Route
+            path="/registrations"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <RegistrationsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/judges"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <JudgesPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/weigh-in"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <WeighInPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/live"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <LivePage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/live/:competitionId"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <LivePage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/records"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <RecordsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/backup"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <BackupPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <NotificationsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute>
                 <MainLayout>
-                  <div>Settings page placeholder</div>
+                  <SettingsPage />
                 </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/judge-interface"
+            element={
+              <ProtectedRoute>
+                <JudgeInterfacePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/judge-interface/:judgeId/:competitionId"
+            element={
+              <ProtectedRoute>
+                <JudgeInterfacePage />
               </ProtectedRoute>
             }
           />

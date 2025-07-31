@@ -25,7 +25,9 @@ export const competitionsService = {
     type?: 'powerlifting' | 'strongman';
     upcoming?: boolean;
   }): Promise<CompetitionWithStats[]> {
-    const constraints: QueryConstraint[] = [orderBy('date', 'desc')];
+    const constraints: QueryConstraint[] = [];
+    // Rimuoviamo orderBy per evitare indici compositi; ordineremo lato client
+    // constraints.push(orderBy('date', 'desc'));
     
     if (filters?.status) {
       constraints.push(where('status', '==', filters.status));
@@ -34,17 +36,39 @@ export const competitionsService = {
     if (filters?.type) {
       constraints.push(where('type', '==', filters.type));
     }
-
-    const q = query(collection(db, COMPETITIONS_COLLECTION), ...constraints);
-    const querySnapshot = await getDocs(q);
+    let querySnapshot;
+    try {
+      const q = query(collection(db, COMPETITIONS_COLLECTION), ...constraints);
+      querySnapshot = await getDocs(q);
+    } catch (error: any) {
+      if (error.code === 'failed-precondition') {
+        console.warn('Composite index missing for competitions; using fallback without orderBy');
+        const qFallback = query(collection(db, COMPETITIONS_COLLECTION));
+        querySnapshot = await getDocs(qFallback);
+      } else {
+        throw error;
+      }
+    }
     
     let competitions = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       date: doc.data().date?.toDate() || new Date(),
+      categories: doc.data().categories ?? [],
       createdAt: doc.data().createdAt?.toDate() || new Date(),
       updatedAt: doc.data().updatedAt?.toDate() || new Date(),
     })) as Competition[];
+
+    // Filtro per status/type se abbiamo usato fallback
+    if (filters?.status) {
+      competitions = competitions.filter(c => c.status === filters.status);
+    }
+    if (filters?.type) {
+      competitions = competitions.filter(c => c.type === filters.type);
+    }
+
+    // Ordina lato client per data desc
+    competitions.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     // Filtro per competizioni future
     if (filters?.upcoming) {
@@ -84,6 +108,7 @@ export const competitionsService = {
         id: docSnap.id,
         ...data,
         date: data.date?.toDate() || new Date(),
+        categories: data.categories ?? [],
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
       } as Competition;
@@ -196,7 +221,7 @@ export const competitionsService = {
     upcoming: number;
     completed: number;
     totalRegistrations: number;
-    byType: { powerlifting: number; strongman: number };
+    byType: { powerlifting: number; strongman: number; weightlifting: number; streetlifting: number };
   }> {
     const competitions = await this.getCompetitions();
     const now = new Date();
@@ -207,11 +232,13 @@ export const competitionsService = {
       upcoming: competitions.filter(c => c.date > now && c.status !== 'completed').length,
       completed: competitions.filter(c => c.status === 'completed').length,
       totalRegistrations: competitions.reduce((sum, c) => sum + c.registrationsCount, 0),
-      byType: { powerlifting: 0, strongman: 0 },
+      byType: { powerlifting: 0, strongman: 0, weightlifting: 0, streetlifting: 0 },
     };
 
     competitions.forEach(comp => {
-      stats.byType[comp.type]++;
+      if (stats.byType[comp.type] !== undefined) {
+        stats.byType[comp.type]++;
+      }
     });
 
     return stats;

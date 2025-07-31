@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,7 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Competition } from '@/types';
+import { DisciplineSelector } from './DisciplineSelector';
+import { useInitializeDefaultDisciplines } from '@/hooks/useDisciplines';
+import type { Competition, CustomDiscipline } from '@/types';
 
 const categorySchema = z.object({
   id: z.string().min(1, 'ID categoria richiesto'),
@@ -23,14 +25,17 @@ const competitionSchema = z.object({
   name: z.string().min(2, 'Nome deve avere almeno 2 caratteri'),
   date: z.string().min(1, 'Data competizione richiesta'),
   location: z.string().min(1, 'Luogo competizione richiesto'),
-  type: z.enum(['powerlifting', 'strongman'], { message: 'Seleziona il tipo' }),
-  status: z.enum(['draft', 'active', 'completed'], { message: 'Seleziona lo stato' }),
+  type: z.enum(['powerlifting', 'strongman', 'crossfit', 'weightlifting', 'streetlifting'], { message: 'Seleziona il tipo' }),
+  status: z.enum(['draft', 'active', 'in_progress', 'completed'], { message: 'Seleziona lo stato' }),
   categories: z.array(categorySchema).min(1, 'Aggiungi almeno una categoria'),
   rules: z.object({
     attempts: z.number().min(1).max(10),
     disciplines: z.array(z.string()).min(1, 'Seleziona almeno una disciplina'),
     scoringSystem: z.enum(['ipf', 'wilks', 'dots'], { message: 'Seleziona il sistema di punteggio' }),
   }),
+  // Nuovi campi per il sistema avanzato
+  selectedDisciplines: z.array(z.any()).optional(), // Le discipline custom selezionate
+  disciplineOrder: z.array(z.string()).optional(), // L'ordine delle discipline
 });
 
 type CompetitionFormData = z.infer<typeof competitionSchema>;
@@ -47,15 +52,46 @@ const weightClasses = [
   '47kg', '52kg', '57kg', '63kg', '69kg', '76kg', '84kg', '84kg+'
 ];
 
-const powerliftingDisciplines = ['Squat', 'Bench Press', 'Deadlift'];
-const strongmanDisciplines = ['Deadlift', 'Log Press', 'Farmers Walk', 'Atlas Stones', 'Yoke Walk'];
-
 export const CompetitionForm: React.FC<CompetitionFormProps> = ({
   competition,
   onSubmit,
   onCancel,
   isLoading = false
 }) => {
+  const [selectedDisciplines, setSelectedDisciplines] = useState<CustomDiscipline[]>([]);
+  const [disciplineOrder, setDisciplineOrder] = useState<string[]>([]);
+  const initializeMutation = useInitializeDefaultDisciplines();
+
+  // Quando stiamo modificando una competizione esistente, carica le discipline salvate
+  useEffect(() => {
+    if (competition) {
+      // Cast a any per gestire eventuali competizioni salvate prima dell'aggiunta del campo
+      const comp: any = competition;
+
+      if (Array.isArray(comp.selectedDisciplines)) {
+        setSelectedDisciplines(comp.selectedDisciplines as CustomDiscipline[]);
+      }
+
+      if (Array.isArray(comp.disciplineOrder) && comp.disciplineOrder.length > 0) {
+        setDisciplineOrder(comp.disciplineOrder as string[]);
+      } else if (Array.isArray(comp.selectedDisciplines)) {
+        // Fallback: ordina secondo l'ordine nel payload se l'ordine esplicito manca
+        setDisciplineOrder((comp.selectedDisciplines as CustomDiscipline[]).map(d => d.id));
+      }
+    }
+  }, [competition]);
+  // Inizializza discipline predefinite al primo caricamento
+  useEffect(() => {
+    const initializeDefaults = async () => {
+      try {
+        await initializeMutation.mutateAsync();
+      } catch (error) {
+        console.error('Error initializing default disciplines:', error);
+      }
+    };
+    
+    initializeDefaults();
+  }, []);
   const {
     register,
     handleSubmit,
@@ -80,16 +116,30 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
     }
   });
 
+  // Mantieni sincronizzate le discipline nel form per superare la validazione
+  useEffect(() => {
+    setValue('rules.disciplines', selectedDisciplines.map(d => d.name));
+  }, [selectedDisciplines, setValue]);
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'categories',
   });
 
   const competitionType = watch('type');
-  const availableDisciplines = competitionType === 'powerlifting' ? powerliftingDisciplines : strongmanDisciplines;
 
   const handleFormSubmit = (data: CompetitionFormData) => {
-    onSubmit(data);
+    // Aggiorna i dati del form con le discipline selezionate
+    const formDataWithDisciplines = {
+      ...data,
+      selectedDisciplines,
+      disciplineOrder,
+      rules: {
+        ...data.rules,
+        disciplines: selectedDisciplines.map(d => d.name), // mantieni compatibilità con il vecchio schema
+      }
+    };
+    onSubmit(formDataWithDisciplines);
   };
 
   const addCategory = () => {
@@ -102,14 +152,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
     });
   };
 
-  const toggleDiscipline = (discipline: string) => {
-    const currentDisciplines = watch('rules.disciplines') || [];
-    const newDisciplines = currentDisciplines.includes(discipline)
-      ? currentDisciplines.filter(d => d !== discipline)
-      : [...currentDisciplines, discipline];
-    
-    setValue('rules.disciplines', newDisciplines);
-  };
+
 
   return (
     <Card className="w-full max-w-4xl">
@@ -124,8 +167,9 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">Informazioni Generali</TabsTrigger>
+              <TabsTrigger value="disciplines">Discipline</TabsTrigger>
               <TabsTrigger value="categories">Categorie</TabsTrigger>
               <TabsTrigger value="rules">Regole</TabsTrigger>
             </TabsList>
@@ -172,13 +216,16 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="type">Tipo Competizione</Label>
-                  <Select onValueChange={(value) => setValue('type', value as 'powerlifting' | 'strongman')}>
+                  <Select onValueChange={(value) => setValue('type', value as 'powerlifting' | 'strongman' | 'crossfit' | 'weightlifting' | 'streetlifting')}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleziona tipo" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="powerlifting">Powerlifting</SelectItem>
                       <SelectItem value="strongman">Strongman</SelectItem>
+                      <SelectItem value="crossfit">CrossFit</SelectItem>
+                      <SelectItem value="weightlifting">Weightlifting</SelectItem>
+                      <SelectItem value="streetlifting">Streetlifting</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.type && (
@@ -188,13 +235,14 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                 
                 <div className="space-y-2">
                   <Label htmlFor="status">Stato</Label>
-                  <Select onValueChange={(value) => setValue('status', value as 'draft' | 'active' | 'completed')}>
+                  <Select onValueChange={(value) => setValue('status', value as 'draft' | 'active' | 'in_progress' | 'completed')}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleziona stato" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="draft">Bozza</SelectItem>
                       <SelectItem value="active">Attiva</SelectItem>
+                      <SelectItem value="in_progress">In Corso</SelectItem>
                       <SelectItem value="completed">Completata</SelectItem>
                     </SelectContent>
                   </Select>
@@ -202,6 +250,36 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                     <p className="text-sm text-destructive">{errors.status.message}</p>
                   )}
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="disciplines" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium">Configurazione Discipline</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Seleziona e ordina le discipline per questa competizione. 
+                    Puoi creare discipline personalizzate per sport specifici.
+                  </p>
+                </div>
+                
+                {competitionType ? (
+                  <DisciplineSelector
+                    selectedDisciplines={selectedDisciplines}
+                    onDisciplinesChange={setSelectedDisciplines}
+                    competitionType={competitionType}
+                    onOrderChange={setDisciplineOrder}
+                    disciplineOrder={disciplineOrder}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Seleziona prima il tipo di competizione per configurare le discipline
+                  </div>
+                )}
+                
+                {selectedDisciplines.length === 0 && competitionType && (
+                  <p className="text-sm text-destructive">Seleziona almeno una disciplina</p>
+                )}
               </div>
             </TabsContent>
 
@@ -302,28 +380,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Discipli</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {availableDisciplines.map((discipline) => (
-                      <div key={discipline} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={discipline}
-                          checked={watch('rules.disciplines')?.includes(discipline) || false}
-                          onChange={() => toggleDiscipline(discipline)}
-                          className="rounded border-gray-300"
-                        />
-                        <Label htmlFor={discipline} className="text-sm">
-                          {discipline}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                  {errors.rules?.disciplines && (
-                    <p className="text-sm text-destructive">{errors.rules.disciplines.message}</p>
-                  )}
-                </div>
+
 
                 <div className="space-y-2">
                   <Label>Sistema di Punteggio</Label>

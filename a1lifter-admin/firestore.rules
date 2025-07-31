@@ -27,6 +27,31 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Regole per le discipline personalizzate
+    match /disciplines/{disciplineId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regole per i dettagli delle registrazioni
+    match /registrationDetails/{detailId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regole per le sessioni live
+    match /liveSessions/{sessionId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regole per la coda live
+    match /liveQueue/{queueId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regole per i risultati dei tentativi
+    match /attemptResults/{attemptId} {
+      allow read, write: if request.auth != null;
+    }
+    
     // Regole per i documenti pubblici (lettura per tutti)
     match /public/{document=**} {
       allow read: if true;

@@ -8,7 +8,14 @@ import {
   BarChart3, 
   Monitor,
   Settings,
-  LogOut 
+  LogOut,
+  UserCheck,
+  Scale,
+  Play,
+  Award,
+  HardDrive,
+  Bell,
+  Gavel
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,7 +23,14 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Atleti', href: '/athletes', icon: Users },
   { name: 'Competizioni', href: '/competitions', icon: Trophy },
+  { name: 'Iscrizioni', href: '/registrations', icon: UserCheck },
   { name: 'Risultati', href: '/results', icon: BarChart3 },
+  { name: 'Giudici', href: '/judges', icon: Gavel },
+  { name: 'Pesate', href: '/weigh-in', icon: Scale },
+  { name: 'Live', href: '/live', icon: Play },
+  { name: 'Record', href: '/records', icon: Award },
+  { name: 'Notifiche', href: '/notifications', icon: Bell },
+  { name: 'Backup', href: '/backup', icon: HardDrive },
   { name: 'Organizzatore', href: '/organizer', icon: Monitor },
   { name: 'Impostazioni', href: '/settings', icon: Settings },
 ];

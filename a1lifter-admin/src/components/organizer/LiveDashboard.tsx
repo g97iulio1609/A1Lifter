@@ -16,15 +16,26 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOrganizerDashboard, useLiveStats, useAlerts } from '@/hooks/useOrganizer';
+import { testDataService } from '@/services/testDataInitializer';
+import { Button } from '@/components/ui/button';
 
 interface LiveDashboardProps {
   competitionId: string;
 }
 
 export const LiveDashboard: React.FC<LiveDashboardProps> = ({ competitionId }) => {
-  const { data: dashboardData, isLoading } = useOrganizerDashboard(competitionId);
+  const { data: dashboardData, isLoading, error, refetch } = useOrganizerDashboard(competitionId);
   const { data: liveStats } = useLiveStats(competitionId);
   const { data: alerts = [] } = useAlerts(competitionId);
+
+  const handleInitializeTestData = async () => {
+    try {
+      await testDataService.createTestRegistrations(competitionId);
+      refetch();
+    } catch (error) {
+      console.error('Error initializing test data:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -49,9 +60,19 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({ competitionId }) =
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            Competizione non trovata
-          </p>
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              {error ? 'Errore nel caricamento dei dati della competizione' : 'Nessun dato disponibile per questa competizione'}
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Per iniziare, aggiungi registrazioni di test per questa competizione
+              </p>
+              <Button onClick={handleInitializeTestData} variant="outline">
+                Inizializza Dati di Test
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );

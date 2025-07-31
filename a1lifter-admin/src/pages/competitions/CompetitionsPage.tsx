@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Trophy, Calendar, Users, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import type { CompetitionWithStats } from '@/types';
 import { toast } from 'sonner';
 
 export const CompetitionsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'draft' | 'active' | 'completed' | undefined>();
   const [typeFilter, setTypeFilter] = useState<'powerlifting' | 'strongman' | undefined>();
@@ -120,9 +122,8 @@ export const CompetitionsPage: React.FC = () => {
     }
   };
 
-  const handleViewRegistrations = (_competition: CompetitionWithStats) => {
-    // TODO: Implementare visualizzazione iscritti
-    toast.info('Funzionalità in sviluppo');
+  const handleViewRegistrations = (competition: CompetitionWithStats) => {
+    navigate(`/registrations?competitionId=${competition.id}`);
   };
 
   const clearFilters = () => {

@@ -4,17 +4,24 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider
 } from 'firebase/auth';
-import { auth } from '@/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/config/firebase';
+import { judgeService } from '@/services/judges';
 import type { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  hasPermission: (permission: keyof User['permissions']) => boolean;
+  canJudgeCompetition: (competitionId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,14 +41,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        const userData: User = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          name: firebaseUser.displayName || firebaseUser.email!,
-          role: 'admin',
-          createdAt: new Date()
-        };
-        setUser(userData);
+        try {
+          // Cerca l'utente in Firestore
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            // Utente esistente con permessi
+            const userData = userDoc.data();
+            setUser({
+              id: firebaseUser.uid,
+              email: userData.email,
+              name: userData.name,
+              role: userData.role,
+              permissions: userData.permissions ?? judgeService.getDefaultAdminPermissions(),
+              createdAt: userData.createdAt?.toDate() || new Date(),
+              updatedAt: userData.updatedAt?.toDate() || new Date(),
+            });
+          } else {
+            // Nuovo utente - crea con permessi admin di default
+            const defaultUser: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email!,
+              name: firebaseUser.displayName || firebaseUser.email!,
+              role: 'admin',
+              permissions: judgeService.getDefaultAdminPermissions(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            await setDoc(userRef, defaultUser);
+            setUser(defaultUser);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -55,22 +89,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const register = async (email: string, password: string, _name: string) => {
+  const register = async (email: string, password: string, name: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // TODO: Store additional user data in Firestore
-    console.log('User registered:', userCredential.user);
+    const userRef = doc(db, 'users', userCredential.user.uid);
+    const defaultUser: User = {
+      id: userCredential.user.uid,
+      email,
+      name,
+      role: 'admin',
+      permissions: judgeService.getDefaultAdminPermissions(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await setDoc(userRef, defaultUser);
+  };
+
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const firebaseUser = result.user;
+    const userRef = doc(db, 'users', firebaseUser.uid);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      const defaultUser: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName || firebaseUser.email!,
+        role: 'admin',
+        permissions: judgeService.getDefaultAdminPermissions(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await setDoc(userRef, defaultUser);
+    }
   };
 
   const logout = async () => {
     await signOut(auth);
   };
 
+  const hasPermission = (permission: keyof User['permissions']): boolean => {
+    if (!user) return false;
+    
+    // Admin ha tutti i permessi
+    if (user.role === 'admin') return true;
+    
+    return user.permissions[permission] as boolean;
+  };
+
+  const canJudgeCompetition = (competitionId: string): boolean => {
+    if (!user || user.role !== 'judge') return false;
+    
+    return user.permissions.canJudgeCompetitions.includes(competitionId) ||
+           user.permissions.canJudgeCompetitions.includes('*');
+  };
+
   const value = {
     user,
     login,
+    loginWithGoogle,
     register,
     logout,
-    loading
+    loading,
+    hasPermission,
+    canJudgeCompetition
   };
 
   return (

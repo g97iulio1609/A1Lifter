@@ -1,7 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { JudgeModeActivator } from '@/components/judge/JudgeModeActivator';
+import { useAuth } from '@/contexts/AuthContext';
+import { Eye, Database } from 'lucide-react';
+import { testDataService } from '@/services/testDataInitializer';
+import { toast } from 'sonner';
 
 export const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
+  const [isInitializingData, setIsInitializingData] = useState(false);
+
+  const handleInitializeTestData = async () => {
+    setIsInitializingData(true);
+    try {
+      await testDataService.initializeTestData();
+      toast.success('Dati di test inizializzati con successo!');
+    } catch (error) {
+      console.error('Error initializing test data:', error);
+      toast.error('Errore nell\'inizializzazione dei dati di test');
+    } finally {
+      setIsInitializingData(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,6 +32,24 @@ export const DashboardPage: React.FC = () => {
           Benvenuto nel pannello di amministrazione A1Lifter
         </p>
       </div>
+
+      {/* Widget modalità giudice per i giudici */}
+      {user?.role === 'judge' && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-blue-800">
+              <Eye className="mr-2 h-5 w-5" />
+              Modalità Giudice
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              Attiva la modalità giudice per una competizione in corso
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <JudgeModeActivator onJudgeModeEnabled={() => {}} />
+          </CardContent>
+        </Card>
+      )}
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -68,6 +108,29 @@ export const DashboardPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Inizializzazione dati di test */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="flex items-center text-orange-800">
+            <Database className="mr-2 h-5 w-5" />
+            Dati di Test
+          </CardTitle>
+          <CardDescription className="text-orange-600">
+            Inizializza atleti, competizioni e registrazioni di test per sviluppo
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            onClick={handleInitializeTestData}
+            disabled={isInitializingData}
+            variant="outline"
+            className="w-full"
+          >
+            {isInitializingData ? 'Inizializzazione in corso...' : 'Inizializza Dati di Test'}
+          </Button>
+        </CardContent>
+      </Card>
       
       <Card>
         <CardHeader>
