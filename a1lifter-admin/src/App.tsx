@@ -1,48 +1,63 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { DashboardPage } from '@/pages/dashboard/DashboardPage';
-import { AthletesPage } from '@/pages/athletes/AthletesPage';
-import { CompetitionsPage } from '@/pages/competitions/CompetitionsPage';
-import { ResultsPage } from '@/pages/results/ResultsPage';
-import { OrganizerPage } from '@/pages/organizer/OrganizerPage';
-import { RegistrationsPage } from '@/pages/registrations/RegistrationsPage';
-import { PublicCompetitionsPage } from '@/pages/public/PublicCompetitionsPage';
-import { CompetitionRegistrationPage } from '@/pages/public/CompetitionRegistrationPage';
+import { AppleStyleLayout } from '@/components/layout/AppleStyleLayout';
 import { LoginPage } from '@/pages/LoginPage';
-import JudgesPage from '@/pages/judges/JudgesPage';
-import WeighInPage from '@/pages/weigh-in/WeighInPage';
-import LivePage from '@/pages/live/LivePage';
-import RecordsPage from '@/pages/records/RecordsPage';
-import BackupPage from '@/pages/backup/BackupPage';
-import NotificationsPage from '@/pages/notifications/NotificationsPage';
-import SettingsPage from '@/pages/settings/SettingsPage';
-import JudgeInterfacePage from '@/pages/judge/JudgeInterfacePage';
+
+// Lazy load delle pagine principali
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const AthletesPage = lazy(() => import('@/pages/athletes/AthletesPage').then(module => ({ default: module.AthletesPage })));
+const CompetitionsPage = lazy(() => import('@/pages/competitions/CompetitionsPage').then(module => ({ default: module.CompetitionsPage })));
+const CreateCompetitionPage = lazy(() => import('@/pages/competitions/CreateCompetitionPage').then(module => ({ default: module.CreateCompetitionPage })));
+const EditCompetitionPage = lazy(() => import('@/pages/competitions/EditCompetitionPage'));
+const ResultsPage = lazy(() => import('@/pages/results/ResultsPage').then(module => ({ default: module.ResultsPage })));
+const OrganizerPage = lazy(() => import('@/pages/organizer/OrganizerPage').then(module => ({ default: module.OrganizerPage })));
+const RegistrationsPage = lazy(() => import('@/pages/registrations/RegistrationsPage').then(module => ({ default: module.RegistrationsPage })));
+const PublicCompetitionsPage = lazy(() => import('@/pages/public/PublicCompetitionsPage').then(module => ({ default: module.PublicCompetitionsPage })));
+const CompetitionRegistrationPage = lazy(() => import('@/pages/public/CompetitionRegistrationPage').then(module => ({ default: module.CompetitionRegistrationPage })));
+const EnhancedHomePage = lazy(() => import('@/pages/public/EnhancedHomePage').then(module => ({ default: module.EnhancedHomePage })));
+const JudgesPage = lazy(() => import('@/pages/judges/JudgesPage'));
+const WeighInPage = lazy(() => import('@/pages/weigh-in/WeighInPage'));
+const OptimizedLivePage = lazy(() => import('@/pages/live/OptimizedLivePage').then(module => ({ default: module.OptimizedLivePage })));
+const RecordsPage = lazy(() => import('@/pages/records/RecordsPage'));
+const BackupPage = lazy(() => import('@/pages/backup/BackupPage'));
+const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage'));
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const JudgeInterfacePage = lazy(() => import('@/pages/judge/JudgeInterfacePage'));
+
+// Componente di loading
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 function App() {
   return (
     <QueryProvider>
       <AuthProvider>
         <Router>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Rotte pubbliche */}
+          <Route path="/" element={<EnhancedHomePage />} />
           <Route path="/public/competitions" element={<PublicCompetitionsPage />} />
-          <Route path="/register/:competitionId" element={<CompetitionRegistrationPage />} />
+          <Route path="/public/competitions/:id/register" element={<CompetitionRegistrationPage />} />
+          <Route path="/public/live/:competitionId" element={<OptimizedLivePage isPublicView={true} />} />
           
           {/* Autenticazione */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/" element={<Navigate to="/public/competitions" replace />} />
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <DashboardPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -50,9 +65,9 @@ function App() {
             path="/athletes"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <AthletesPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -60,9 +75,25 @@ function App() {
             path="/competitions"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <CompetitionsPage />
-                </MainLayout>
+                </AppleStyleLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/competitions/create"
+            element={
+              <ProtectedRoute>
+                <CreateCompetitionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/competitions/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditCompetitionPage />
               </ProtectedRoute>
             }
           />
@@ -70,9 +101,9 @@ function App() {
             path="/results"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <ResultsPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -80,9 +111,9 @@ function App() {
             path="/organizer"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <OrganizerPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -90,9 +121,9 @@ function App() {
             path="/registrations"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <RegistrationsPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -100,9 +131,9 @@ function App() {
             path="/judges"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <JudgesPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -110,9 +141,9 @@ function App() {
             path="/weigh-in"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <WeighInPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -120,29 +151,20 @@ function App() {
             path="/live"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <LivePage />
-                </MainLayout>
+                <AppleStyleLayout>
+                  <OptimizedLivePage />
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/live/:competitionId"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <LivePage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/records"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <RecordsPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -150,9 +172,9 @@ function App() {
             path="/backup"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <BackupPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -160,9 +182,9 @@ function App() {
             path="/notifications"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <NotificationsPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -170,9 +192,9 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute>
-                <MainLayout>
+                <AppleStyleLayout>
                   <SettingsPage />
-                </MainLayout>
+                </AppleStyleLayout>
               </ProtectedRoute>
             }
           />
@@ -193,6 +215,7 @@ function App() {
             }
           />
         </Routes>
+        </Suspense>
         </Router>
       </AuthProvider>
       <Toaster />

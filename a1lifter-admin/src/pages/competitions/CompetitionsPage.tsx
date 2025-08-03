@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Trophy, Calendar, Users, Target, List, Workflow } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Trophy, Calendar, Users, Target, List, Workflow } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,11 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompetitionWorkflow } from '@/components/competitions/CompetitionWorkflow';
 import { CompetitionsTable } from '@/components/competitions/CompetitionsTable';
-import { CompetitionForm } from '@/components/competitions/CompetitionForm';
 import { 
   useCompetitions, 
-  useCreateCompetition, 
-  useUpdateCompetition, 
   useDeleteCompetition,
   useDuplicateCompetition,
   useCompetitionsStats
@@ -24,13 +21,10 @@ import { toast } from 'sonner';
 
 export const CompetitionsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'draft' | 'active' | 'completed' | undefined>();
   const [typeFilter, setTypeFilter] = useState<'powerlifting' | 'strongman' | undefined>();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedCompetition, setSelectedCompetition] = useState<CompetitionWithStats | null>(null);
+
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [competitionToDuplicate, setCompetitionToDuplicate] = useState<CompetitionWithStats | null>(null);
   const [activeTab, setActiveTab] = useState('workflow');
@@ -42,21 +36,10 @@ export const CompetitionsPage: React.FC = () => {
 
   const { data: competitions = [], isLoading, error } = useCompetitions(filters);
   const { data: stats } = useCompetitionsStats();
-  const createMutation = useCreateCompetition();
-  const updateMutation = useUpdateCompetition();
   const deleteMutation = useDeleteCompetition();
   const duplicateMutation = useDuplicateCompetition();
 
-  useEffect(() => {
-    // Controlla se c'è un'azione nei parametri URL
-    const action = searchParams.get('action');
-    if (action === 'create') {
-      setIsCreateDialogOpen(true);
-      // Rimuovi il parametro dall'URL
-      searchParams.delete('action');
-      setSearchParams(searchParams);
-    }
-  }, [searchParams, setSearchParams]);
+
 
   // Filtro client-side per la ricerca
   const filteredCompetitions = competitions.filter(competition =>
@@ -65,37 +48,7 @@ export const CompetitionsPage: React.FC = () => {
     competition.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleCreateCompetition = async (data: any) => {
-    try {
-      await createMutation.mutateAsync({
-        ...data,
-        date: new Date(data.date),
-      });
-      toast.success('Competizione creata con successo');
-      setIsCreateDialogOpen(false);
-    } catch (error) {
-      toast.error('Errore durante la creazione della competizione');
-    }
-  };
 
-  const handleUpdateCompetition = async (data: any) => {
-    if (!selectedCompetition) return;
-    
-    try {
-      await updateMutation.mutateAsync({
-        id: selectedCompetition.id,
-        data: {
-          ...data,
-          date: new Date(data.date),
-        },
-      });
-      toast.success('Competizione aggiornata con successo');
-      setIsEditDialogOpen(false);
-      setSelectedCompetition(null);
-    } catch (error) {
-      toast.error('Errore durante l\'aggiornamento della competizione');
-    }
-  };
 
   const handleDeleteCompetition = async (id: string) => {
     try {
@@ -106,10 +59,7 @@ export const CompetitionsPage: React.FC = () => {
     }
   };
 
-  const handleEditCompetition = (competition: CompetitionWithStats) => {
-    setSelectedCompetition(competition);
-    setIsEditDialogOpen(true);
-  };
+
 
   const handleDuplicateCompetition = (competition: CompetitionWithStats) => {
     setCompetitionToDuplicate(competition);
@@ -137,9 +87,7 @@ export const CompetitionsPage: React.FC = () => {
     }
   };
 
-  const handleViewRegistrations = (competition: CompetitionWithStats) => {
-    navigate(`/registrations?competitionId=${competition.id}`);
-  };
+
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -175,10 +123,6 @@ export const CompetitionsPage: React.FC = () => {
               Tabella
             </TabsTrigger>
           </TabsList>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nuova Competizione
-          </Button>
         </div>
 
         <TabsContent value="workflow">
@@ -303,48 +247,17 @@ export const CompetitionsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <CompetitionsTable
-                competitions={filteredCompetitions}
-                onEdit={handleEditCompetition}
-                onDelete={handleDeleteCompetition}
-                onDuplicate={handleDuplicateCompetition}
-                onViewRegistrations={handleViewRegistrations}
-                isLoading={isLoading}
-              />
+              competitions={filteredCompetitions}
+              onDelete={handleDeleteCompetition}
+              onDuplicate={handleDuplicateCompetition}
+              onViewRegistrations={(competitionId) => navigate(`/registrations?competitionId=${competitionId}`)}
+              isLoading={isLoading}
+            />
             </CardContent>
           </Card>
         </TabsContent>
 
-      {/* Dialog Creazione */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Nuova Competizione</DialogTitle>
-          </DialogHeader>
-          <CompetitionForm
-            onSubmit={handleCreateCompetition}
-            onCancel={() => setIsCreateDialogOpen(false)}
-            isLoading={createMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
 
-      {/* Dialog Modifica */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Modifica Competizione</DialogTitle>
-          </DialogHeader>
-          <CompetitionForm
-            competition={selectedCompetition || undefined}
-            onSubmit={handleUpdateCompetition}
-            onCancel={() => {
-              setIsEditDialogOpen(false);
-              setSelectedCompetition(null);
-            }}
-            isLoading={updateMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Dialog Duplicazione */}
       <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>

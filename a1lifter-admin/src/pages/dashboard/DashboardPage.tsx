@@ -1,6 +1,6 @@
 import React from 'react';
-import { CentralizedDashboard } from '@/components/dashboard/CentralizedDashboard';
+import { EnhancedAdminDashboard } from '@/components/dashboard/EnhancedAdminDashboard';
 
 export const DashboardPage: React.FC = () => {
-  return <CentralizedDashboard />;
+  return <EnhancedAdminDashboard />;
 };

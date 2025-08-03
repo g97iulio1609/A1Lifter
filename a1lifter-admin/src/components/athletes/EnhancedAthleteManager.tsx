@@ -1,33 +1,25 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Users,
-  Plus,
   Search,
-  Filter,
   Download,
   Upload,
   UserPlus,
-  Edit,
   Trash2,
   Trophy,
-  Calendar,
-  Weight,
   User,
   Mail,
   Phone,
-  MapPin,
   Star,
   Award,
-  Target
+  Edit
 } from 'lucide-react';
 import type { Athlete } from '@/types';
 
@@ -35,64 +27,76 @@ interface EnhancedAthleteManagerProps {
   competitionId?: string;
 }
 
-export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = ({ competitionId }) => {
+export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () => {
   const [athletes, setAthletes] = useState<Athlete[]>([
     {
       id: '1',
       name: 'Marco Rossi',
       email: 'marco.rossi@email.com',
       phone: '+39 333 1234567',
-      birthDate: '1990-05-15',
+      birthDate: new Date('1990-05-15'),
       gender: 'M',
       category: 'Open',
       weightClass: '83kg',
       bodyWeight: 82.5,
       team: 'PowerTeam Milano',
+      federation: 'FIPL',
+      personalRecords: { squat: 180, bench: 120, deadlift: 200 },
       personalBests: {
         squat: 180,
         bench: 120,
         deadlift: 200
       },
       competitions: 15,
-      isActive: true
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     },
     {
       id: '2',
       name: 'Laura Bianchi',
       email: 'laura.bianchi@email.com',
       phone: '+39 333 7654321',
-      birthDate: '1995-08-22',
+      birthDate: new Date('1995-08-22'),
       gender: 'F',
       category: 'Junior',
       weightClass: '63kg',
       bodyWeight: 62.8,
       team: 'Strength Sisters',
+      federation: 'FIPL',
+      personalRecords: { squat: 120, bench: 70, deadlift: 140 },
       personalBests: {
         squat: 120,
         bench: 70,
         deadlift: 140
       },
       competitions: 8,
-      isActive: true
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     },
     {
       id: '3',
       name: 'Giuseppe Verdi',
       email: 'giuseppe.verdi@email.com',
       phone: '+39 333 9876543',
-      birthDate: '1985-12-03',
+      birthDate: new Date('1985-12-03'),
       gender: 'M',
       category: 'Master',
       weightClass: '93kg',
       bodyWeight: 91.2,
       team: 'Iron Warriors',
+      federation: 'FIPL',
+      personalRecords: { squat: 220, bench: 150, deadlift: 250 },
       personalBests: {
         squat: 220,
         bench: 150,
         deadlift: 250
       },
       competitions: 25,
-      isActive: true
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   ]);
 
@@ -100,14 +104,13 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = ({ 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedWeightClass, setSelectedWeightClass] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+
 
   const [newAthlete, setNewAthlete] = useState<Partial<Athlete>>({
     name: '',
     email: '',
     phone: '',
-    birthDate: '',
+    birthDate: undefined,
     gender: 'M',
     category: 'Open',
     weightClass: '',
@@ -140,16 +143,21 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = ({ 
         id: Date.now().toString(),
         name: newAthlete.name,
         email: newAthlete.email,
-        phone: newAthlete.phone || '',
-        birthDate: newAthlete.birthDate || '',
+        phone: newAthlete.phone,
+        birthDate: newAthlete.birthDate || new Date(),
         gender: newAthlete.gender || 'M',
-        category: newAthlete.category || 'Open',
+        bodyweight: newAthlete.bodyWeight,
+        bodyWeight: newAthlete.bodyWeight,
         weightClass: newAthlete.weightClass || '',
-        bodyWeight: newAthlete.bodyWeight || 0,
-        team: newAthlete.team || '',
-        personalBests: newAthlete.personalBests || { squat: 0, bench: 0, deadlift: 0 },
-        competitions: newAthlete.competitions || 0,
-        isActive: true
+        federation: 'FIPL',
+        team: newAthlete.team,
+        category: newAthlete.category,
+        isActive: newAthlete.isActive ?? true,
+        personalRecords: {},
+        personalBests: newAthlete.personalBests,
+        competitions: newAthlete.competitions,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
       setAthletes([...athletes, athlete]);
@@ -157,7 +165,7 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = ({ 
         name: '',
         email: '',
         phone: '',
-        birthDate: '',
+        birthDate: undefined,
         gender: 'M',
         category: 'Open',
         weightClass: '',
@@ -265,8 +273,8 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = ({ 
                   <Input
                     id="birthDate"
                     type="date"
-                    value={newAthlete.birthDate}
-                    onChange={(e) => setNewAthlete({ ...newAthlete, birthDate: e.target.value })}
+                    value={newAthlete.birthDate ? newAthlete.birthDate.toISOString().split('T')[0] : ''}
+                    onChange={(e) => setNewAthlete({ ...newAthlete, birthDate: e.target.value ? new Date(e.target.value) : undefined })}
                   />
                 </div>
                 

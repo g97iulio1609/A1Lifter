@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Scale, Search, Plus, Download, Filter, User, AlertTriangle, Check, X, Trophy } from 'lucide-react';
 import { weighInService } from '@/services/weighIn';
 import type { WeighIn } from '@/types';
+import { AthleteAutocomplete } from '@/components/ui/athlete-autocomplete';
+import { useCompetitionAthletes, useActiveCompetitions } from '@/hooks/useCompetitionAthletes';
 import { toast } from 'sonner';
 
 interface WeighInManagementProps {
@@ -24,39 +26,49 @@ const CreateWeighInModal: React.FC<CreateWeighInModalProps> = ({
   const [formData, setFormData] = useState({
     athleteId: '',
     competitionId: competitionId || '',
-    weight: '',
-    category: '',
-    notes: ''
+    bodyWeight: '',
+    categoryId: ''
   });
+  const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { athletes } = useCompetitionAthletes(formData.competitionId);
+  const { competitions } = useActiveCompetitions();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.athleteId || !formData.competitionId || !formData.weight) {
+    if (!selectedAthlete) {
+      toast.error('Seleziona un atleta');
+      return;
+    }
+    
+    if (!formData.competitionId || !formData.bodyWeight) {
       toast.error('Compila tutti i campi obbligatori');
       return;
     }
 
+    const bodyWeight = parseFloat(formData.bodyWeight);
+    if (isNaN(bodyWeight) || bodyWeight <= 0 || bodyWeight > 300) {
+      toast.error('Inserisci un peso valido (0-300 kg)');
+      return;
+    }
+
     setIsSubmitting(true);
-    
     try {
-      const weighInData: Omit<WeighIn, 'id' | 'createdAt' | 'updatedAt'> = {
+      await weighInService.createWeighIn({
         athleteId: formData.athleteId,
-        athleteName: formData.athleteId, // Placeholder, dovrebbe essere il nome reale
+        athleteName: selectedAthlete.athlete.name,
         competitionId: formData.competitionId,
-        categoryId: formData.category,
-        weightCategory: formData.category, // Placeholder
-        bodyWeight: parseFloat(formData.weight),
-        weight: parseFloat(formData.weight),
+        categoryId: formData.categoryId,
+        weightCategory: selectedAthlete.athlete.weightClass,
+        bodyWeight: bodyWeight,
+        weight: bodyWeight, // Alias per compatibilità
         weighInTime: new Date(),
-        isOfficial: false,
-        status: 'pending',
-        notes: formData.notes || undefined
-      };
+        isOfficial: true,
+        status: 'pending'
+      });
       
-      await weighInService.createWeighIn(weighInData);
-      toast.success('Pesata registrata con successo');
+      toast.success(`Pesata registrata per ${selectedAthlete.athlete.name}: ${bodyWeight} kg`);
       onSuccess();
       onClose();
       
@@ -64,13 +76,13 @@ const CreateWeighInModal: React.FC<CreateWeighInModalProps> = ({
       setFormData({
         athleteId: '',
         competitionId: competitionId || '',
-        weight: '',
-        category: '',
-        notes: ''
+        bodyWeight: '',
+        categoryId: ''
       });
+      setSelectedAthlete(null);
     } catch (error) {
       console.error('Error creating weigh-in:', error);
-      toast.error('Errore durante la registrazione della pesata');
+      toast.error('Errore nella registrazione della pesata');
     } finally {
       setIsSubmitting(false);
     }
@@ -86,75 +98,109 @@ const CreateWeighInModal: React.FC<CreateWeighInModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              ID Atleta *
+              Atleta *
             </label>
-            <input
-              type="text"
-              value={formData.athleteId}
-              onChange={(e) => setFormData(prev => ({ ...prev, athleteId: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Inserisci ID atleta"
-              required
-            />
+            <AthleteAutocomplete
+               athletes={athletes}
+               value={selectedAthlete}
+               onSelect={(athlete) => {
+                 setSelectedAthlete(athlete);
+                 setFormData(prev => ({ 
+                   ...prev, 
+                   athleteId: athlete?.athlete.id || '',
+                   categoryId: athlete?.registration?.categoryId || ''
+                 }));
+               }}
+               placeholder="Seleziona atleta iscritto"
+               className="w-full"
+             />
           </div>
           
           {!competitionId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ID Competizione *
+                Competizione *
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.competitionId}
                 onChange={(e) => setFormData(prev => ({ ...prev, competitionId: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Inserisci ID competizione"
                 required
-              />
+              >
+                <option value="">Seleziona competizione</option>
+                {competitions.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           
+          {/* Informazioni atleta selezionato */}
+          {selectedAthlete && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">Atleta Selezionato</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-700 font-medium">Nome:</span>
+                  <span className="ml-2 text-blue-900">{selectedAthlete.athlete.name}</span>
+                </div>
+                <div>
+                  <span className="text-blue-700 font-medium">Pettorale:</span>
+                  <span className="ml-2 text-blue-900">#{selectedAthlete.bibNumber}</span>
+                </div>
+                <div>
+                  <span className="text-blue-700 font-medium">Categoria:</span>
+                  <span className="ml-2 text-blue-900">{selectedAthlete.athlete.weightClass}</span>
+                </div>
+                <div>
+                  <span className="text-blue-700 font-medium">Team:</span>
+                  <span className="ml-2 text-blue-900">{selectedAthlete.athlete.team || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Peso (kg) *
+              Peso Corporeo (kg) *
             </label>
             <input
               type="number"
               step="0.1"
               min="0"
-              value={formData.weight}
-              onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+              max="300"
+              value={formData.bodyWeight}
+              onChange={(e) => setFormData(prev => ({ ...prev, bodyWeight: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Inserisci peso"
+              placeholder="75.5"
               required
+              disabled={!selectedAthlete}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Peso misurato durante la pesata ufficiale
+            </p>
           </div>
+
+          {selectedAthlete && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categoria di Gara
+              </label>
+              <input
+                type="text"
+                value={formData.categoryId}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700"
+                readOnly
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Categoria assegnata automaticamente in base alla registrazione
+              </p>
+            </div>
+          )}
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Categoria
-            </label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Categoria di peso"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              placeholder="Note aggiuntive..."
-            />
-          </div>
+
           
           <div className="flex gap-3 pt-4">
             <button
@@ -178,12 +224,15 @@ const CreateWeighInModal: React.FC<CreateWeighInModalProps> = ({
   );
 };
 
-const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) => {
+const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId: initialCompetitionId }) => {
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>(initialCompetitionId || '');
   const [weighIns, setWeighIns] = useState<WeighIn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const { competitions } = useActiveCompetitions();
+  const { athletes } = useCompetitionAthletes(selectedCompetitionId);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -193,15 +242,22 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
 
   useEffect(() => {
     loadWeighIns();
-  }, [competitionId]);
+  }, [selectedCompetitionId]);
+
+  // Aggiorna la competizione selezionata quando cambia quella iniziale
+  useEffect(() => {
+    if (initialCompetitionId && initialCompetitionId !== selectedCompetitionId) {
+      setSelectedCompetitionId(initialCompetitionId);
+    }
+  }, [initialCompetitionId]);
 
   const loadWeighIns = async () => {
     try {
       setIsLoading(true);
       let weighInData: WeighIn[];
       
-      if (competitionId) {
-        weighInData = await weighInService.getWeighInsByCompetition(competitionId);
+      if (selectedCompetitionId) {
+        weighInData = await weighInService.getWeighInsByCompetition(selectedCompetitionId);
       } else {
         weighInData = await weighInService.getAllWeighIns();
       }
@@ -254,13 +310,13 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
 
   const handleExport = async () => {
     try {
-      const exportData = await weighInService.exportWeighIns(competitionId || '');
+      const exportData = await weighInService.exportWeighIns(selectedCompetitionId || '');
       
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pesate-${competitionId || 'tutte'}-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `pesate-${selectedCompetitionId || 'tutte'}-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -331,14 +387,15 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Gestione Pesate</h2>
           <p className="text-gray-600">
-            {competitionId ? 'Pesate per questa competizione' : 'Tutte le pesate del sistema'}
+            {selectedCompetitionId ? 'Pesate per la competizione selezionata' : 'Seleziona una competizione per gestire le pesate'}
           </p>
         </div>
         
         <div className="flex gap-3">
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedCompetitionId}
           >
             <Download className="h-4 w-4" />
             Esporta
@@ -346,13 +403,40 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
           
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedCompetitionId}
           >
             <Plus className="h-4 w-4" />
             Nuova Pesata
           </button>
         </div>
       </div>
+
+      {/* Competition Selector */}
+      {!initialCompetitionId && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label htmlFor="competition-select" className="block text-sm font-medium text-gray-700 mb-1">
+                Seleziona Competizione
+              </label>
+              <select
+                id="competition-select"
+                value={selectedCompetitionId}
+                onChange={(e) => setSelectedCompetitionId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Scegli una competizione...</option>
+                {competitions.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name} ({new Date(comp.date).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -433,7 +517,17 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
 
       {/* Weigh-ins List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {filteredWeighIns.length > 0 ? (
+        {!selectedCompetitionId ? (
+          <div className="text-center py-12">
+            <Trophy className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              Seleziona una competizione
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Scegli una competizione dal menu sopra per visualizzare e gestire le pesate
+            </p>
+          </div>
+        ) : filteredWeighIns.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -442,10 +536,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
                     Atleta
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Competizione
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Peso
+                    Peso Corporeo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Categoria
@@ -454,7 +545,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
                     Stato
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data
+                    Data Pesata
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Azioni
@@ -462,62 +553,78 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredWeighIns.map((weighIn) => (
-                  <tr key={weighIn.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="h-5 w-5 text-gray-400 mr-3" />
+                {filteredWeighIns.map((weighIn) => {
+                  // Trova l'atleta corrispondente per mostrare informazioni aggiuntive
+                  const athleteInfo = athletes.find(a => a.athlete.id === weighIn.athleteId);
+                  
+                  return (
+                    <tr key={weighIn.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {weighIn.athleteName || weighIn.athleteId}
+                            </div>
+                            {athleteInfo && (
+                              <div className="text-xs text-gray-500">
+                                #{athleteInfo.bibNumber} • {athleteInfo.athlete.team || 'Nessun team'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {weighIn.athleteId}
+                          {weighIn.bodyWeight} kg
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Trophy className="h-5 w-5 text-gray-400 mr-3" />
+                        <div className="text-xs text-gray-500">
+                          {weighIn.isOfficial ? 'Ufficiale' : 'Non ufficiale'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {weighIn.competitionId}
+                          {weighIn.weightCategory || weighIn.categoryId || '-'}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {weighIn.bodyWeight} kg
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {weighIn.categoryId || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(weighIn.status)}`}>
-                        {getStatusIcon(weighIn.status)}
-                        {weighIn.status === 'pending' ? 'In attesa' :
-                         weighIn.status === 'approved' ? 'Approvata' : 'Rifiutata'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(weighIn.weighInTime).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {weighIn.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleApprove(weighIn.id)}
-                            className="text-green-600 hover:text-green-900"
-                            title="Approva"
-                          >
-                            <Check className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleReject(weighIn.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Rifiuta"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(weighIn.status)}`}>
+                          {getStatusIcon(weighIn.status)}
+                          {weighIn.status === 'pending' ? 'In attesa' :
+                           weighIn.status === 'approved' ? 'Approvata' : 'Rifiutata'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>{new Date(weighIn.weighInTime).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(weighIn.weighInTime).toLocaleTimeString()}
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {weighIn.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleApprove(weighIn.id)}
+                              className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
+                              title="Approva pesata"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleReject(weighIn.id)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                              title="Rifiuta pesata"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -533,7 +640,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
             <p className="mt-1 text-sm text-gray-500">
               {searchQuery || statusFilter !== 'all'
                 ? 'Prova a modificare i filtri di ricerca'
-                : 'Registra la prima pesata per iniziare'
+                : 'Registra la prima pesata per questa competizione'
               }
             </p>
           </div>
@@ -545,7 +652,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId }) 
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={loadWeighIns}
-        competitionId={competitionId}
+        competitionId={selectedCompetitionId}
       />
     </div>
   );

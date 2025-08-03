@@ -92,12 +92,19 @@ export type Athlete = {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   birthDate: Date;
   gender: 'M' | 'F';
   bodyweight?: number;
+  bodyWeight?: number; // alias for bodyweight
   weightClass: string;
   federation: string;
+  team?: string;
+  category?: string;
+  isActive?: boolean;
   personalRecords: { [key: string]: number };
+  personalBests?: { squat?: number; bench?: number; deadlift?: number };
+  competitions?: number;
   createdAt: Date;
   updatedAt: Date;
 };

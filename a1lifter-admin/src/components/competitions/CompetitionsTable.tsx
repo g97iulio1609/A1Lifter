@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { MoreHorizontal, Edit, Trash2, Users, Copy, Calendar } from 'lucide-react';
@@ -33,21 +34,20 @@ import type { CompetitionWithStats } from '@/types';
 
 interface CompetitionsTableProps {
   competitions: CompetitionWithStats[];
-  onEdit: (competition: CompetitionWithStats) => void;
   onDelete: (id: string) => void;
   onDuplicate: (competition: CompetitionWithStats) => void;
-  onViewRegistrations: (competition: CompetitionWithStats) => void;
+  onViewRegistrations: (competitionId: string) => void;
   isLoading?: boolean;
 }
 
 export const CompetitionsTable: React.FC<CompetitionsTableProps> = ({
   competitions,
-  onEdit,
   onDelete,
   onDuplicate,
   onViewRegistrations,
   isLoading = false
 }) => {
+  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<CompetitionWithStats | null>(null);
 
@@ -196,12 +196,12 @@ export const CompetitionsTable: React.FC<CompetitionsTableProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onViewRegistrations(competition)}>
+                        <DropdownMenuItem onClick={() => onViewRegistrations(competition.id)}>
                           <Users className="mr-2 h-4 w-4" />
                           Visualizza Iscritti
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onEdit(competition)}>
+                        <DropdownMenuItem onClick={() => navigate(`/competitions/${competition.id}/edit`)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Modifica
                         </DropdownMenuItem>

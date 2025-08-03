@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { useAthletes } from '@/hooks/useAthletes';
 import type { Registration, Competition } from '@/types';
 
@@ -57,6 +58,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const selectedAthleteId = watch('athleteId');
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
 
+  // Prepara le opzioni per il Combobox degli atleti
+  const athleteOptions: ComboboxOption[] = athletes.map(athlete => ({
+    value: athlete.id,
+    label: `${athlete.name} (${athlete.gender}) - ${athlete.weightClass}`,
+    searchableText: `${athlete.name} ${athlete.email} ${athlete.gender} ${athlete.weightClass}`.toLowerCase()
+  }));
+
   // Filtra categorie compatibili con l'atleta selezionato
   const compatibleCategories = competition.categories.filter(category => {
     if (!selectedAthlete) return true;
@@ -81,21 +89,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="athleteId">Atleta</Label>
-            <Select 
-              value={selectedAthleteId} 
+            <Combobox
+              options={athleteOptions}
+              value={selectedAthleteId}
               onValueChange={(value) => setValue('athleteId', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleziona un atleta" />
-              </SelectTrigger>
-              <SelectContent>
-                {athletes.map((athlete) => (
-                  <SelectItem key={athlete.id} value={athlete.id}>
-                    {athlete.name} ({athlete.gender}) - {athlete.weightClass}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Cerca e seleziona un atleta..."
+              searchPlaceholder="Cerca per nome, email o caratteristiche..."
+              emptyText="Nessun atleta trovato."
+              className="w-full"
+            />
             {errors.athleteId && (
               <p className="text-sm text-destructive">{errors.athleteId.message}</p>
             )}

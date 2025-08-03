@@ -6,23 +6,19 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, 
-  Edit, 
   Play, 
   Users, 
-  Calendar, 
   Settings, 
-  CheckCircle, 
-  Clock, 
   Trophy,
-  Target,
-  FileText,
-  UserCheck,
   Scale,
-  BarChart3,
-  Award,
   ChevronRight,
-  AlertCircle,
-  Info
+  Calendar,
+  Target,
+  CheckCircle,
+  Info,
+  UserCheck,
+  BarChart3,
+  Award
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -56,8 +52,7 @@ interface CompetitionWorkflowProps {
 }
 
 export const CompetitionWorkflow: React.FC<CompetitionWorkflowProps> = ({
-  competitions = [],
-  isLoading = false
+  competitions = []
 }) => {
   const navigate = useNavigate();
   const [selectedCompetition, setSelectedCompetition] = useState<WorkflowCompetition | null>(null);
@@ -99,7 +94,19 @@ export const CompetitionWorkflow: React.FC<CompetitionWorkflowProps> = ({
     }
   ];
 
-  const displayCompetitions = competitions.length > 0 ? competitions : mockCompetitions;
+  const displayCompetitions: WorkflowCompetition[] = competitions.length > 0 
+    ? competitions.map(comp => ({
+        id: comp.id,
+        name: comp.name,
+        startDate: comp.date.toISOString(),
+        endDate: comp.date.toISOString(),
+        status: comp.status === 'draft' ? 'draft' : comp.status === 'active' ? 'scheduled' : comp.status === 'in_progress' ? 'active' : 'completed',
+        participantsCount: 0, // Default value
+        discipline: comp.type.charAt(0).toUpperCase() + comp.type.slice(1),
+        location: comp.location,
+        progress: comp.status === 'completed' ? 100 : comp.status === 'in_progress' ? 50 : comp.status === 'active' ? 25 : 0
+      }))
+    : mockCompetitions;
 
   const getWorkflowSteps = (competition: WorkflowCompetition): WorkflowStep[] => {
     const baseSteps: WorkflowStep[] = [
@@ -195,7 +202,7 @@ export const CompetitionWorkflow: React.FC<CompetitionWorkflowProps> = ({
           </p>
         </div>
         <Button 
-          onClick={() => navigate('/competitions?action=create')} 
+          onClick={() => navigate('/competitions/create')} 
           className="gap-2"
         >
           <Plus className="h-4 w-4" />

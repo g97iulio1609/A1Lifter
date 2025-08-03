@@ -1,10 +1,10 @@
-# A1Lifter - Documentazione Requisiti Prodotto
+# A1Lifter - Documentazione Requisiti Prodotto Ottimizzata
 
 ## 1. Panoramica del Prodotto
 
-A1Lifter è un sistema completo di gestione per competizioni di powerlifting, strongman, weightlifting e streetlifting. La piattaforma offre strumenti professionali per organizzatori, giudici e atleti, gestendo l'intero ciclo di vita di una competizione dalla registrazione alla pubblicazione dei risultati finali.
+A1Lifter è un sistema completo di gestione per competizioni di powerlifting, strongman, weightlifting e streetlifting con focus sull'esperienza utente ottimizzata. La piattaforma offre un'interfaccia intuitiva e fluida sul modello Apple, gestendo l'intero ciclo di vita di una competizione con workflow semplificati e accesso immediato alle funzionalità.
 
-Il sistema risolve i problemi di gestione manuale delle competizioni, automatizza il calcolo dei punteggi secondo le formule ufficiali (IPF, Wilks, DOTS) e fornisce un'interfaccia moderna per il monitoraggio in tempo reale delle gare.
+Il sistema elimina la complessità della gestione manuale attraverso un design minimalista, navigazione razionalizzata e automazione intelligente. Prioritizza velocità, chiarezza e usabilità senza compromettere le funzionalità professionali richieste da organizzatori, giudici e atleti.
 
 ## 2. Funzionalità Principali
 
@@ -19,15 +19,15 @@ Il sistema risolve i problemi di gestione manuale delle competizioni, automatizz
 
 ### 2.2 Moduli Funzionali
 
-Il sistema è composto dalle seguenti pagine principali:
+Il sistema è organizzato in pagine essenziali con navigazione semplificata:
 
-1. **Dashboard**: panoramica generale, statistiche competizioni, notifiche importanti, accesso rapido alle funzioni principali
-2. **Gestione Atleti**: anagrafica completa, record personali, storico competizioni, importazione CSV
-3. **Gestione Competizioni**: creazione gare, configurazione categorie e regole, gestione stati competizione
-4. **Sistema Registrazioni**: iscrizioni atleti, gestione pagamenti, validazione categorie peso
-5. **Interfaccia Giudizio Live**: valutazione tentativi in tempo reale, gestione ordine atleti, cronometro
-6. **Risultati e Classifiche**: calcolo automatico punteggi, export PDF/Excel, pubblicazione risultati
-7. **Configurazioni Sistema**: gestione discipline, categorie peso, formule calcolo, backup dati
+1. **Dashboard Unificata**: panoramica intelligente con widget personalizzabili, accesso diretto alle azioni più frequenti, notifiche contestuali
+2. **Gestione Live Avanzata**: interfaccia fullscreen ottimizzata, vista pubblica sincronizzata per monitor esterni, controlli touch-friendly per giudici
+3. **Gestione Atleti Streamlined**: anagrafica semplificata con import intelligente, visualizzazione record immediata, ricerca istantanea
+4. **Competizioni Smart**: wizard di creazione guidato, template predefiniti, gestione stati automatizzata
+5. **Registrazioni Semplificate**: processo di iscrizione in 3 step, validazione automatica, pagamenti integrati
+6. **Risultati Immediati**: calcolo real-time, export one-click, condivisione automatica
+7. **Configurazioni Essenziali**: impostazioni raggruppate logicamente, backup automatico, configurazione rapida
 
 ### 2.3 Dettagli Pagine
 
@@ -44,9 +44,11 @@ Il sistema è composto dalle seguenti pagine principali:
 | Sistema Registrazioni | Iscrizioni Pubbliche | Permette registrazione atleti con selezione categoria, pagamento, conferma |
 | Sistema Registrazioni | Validazione Categorie | Verifica automatica peso corporeo, età, requisiti federazione |
 | Sistema Registrazioni | Gestione Pagamenti | Traccia stato pagamenti, genera ricevute, gestisce rimborsi |
-| Interfaccia Giudizio Live | Valutazione Tentativi | Interfaccia touch per giudici con voti valido/non valido, correzioni |
-| Interfaccia Giudizio Live | Gestione Ordine | Calcola automaticamente ordine atleti, gestisce cambi peso, pause |
-| Interfaccia Giudizio Live | Cronometro Gara | Timer per tentativi, pause tra discipline, gestione tempi regolamentari |
+| Gestione Live Avanzata | Interfaccia Fullscreen | Modalità immersiva senza distrazioni, controlli essenziali, visualizzazione ottimizzata per proiezione |
+| Gestione Live Avanzata | Vista Pubblica Sincronizzata | Display dedicato per monitor esterni con dati real-time, panoramica completa per coach, sincronizzazione automatica |
+| Gestione Live Avanzata | Controlli Giudici Touch | Interfaccia semplificata per tablet, voti immediati, feedback visivo istantaneo |
+| Gestione Live Avanzata | Gestione Ordine Intelligente | Calcolo automatico sequenze, notifiche proattive, gestione pause ottimizzata |
+| Gestione Live Avanzata | Timer Avanzato | Cronometro prominente, allarmi sonori/visivi, controlli gestuali per dispositivi touch |
 | Risultati e Classifiche | Calcolo Punteggi | Applica formule IPF, Wilks, DOTS automaticamente, gestisce record |
 | Risultati e Classifiche | Export Documenti | Genera PDF classifiche, Excel dettagliati, certificati partecipazione |
 | Risultati e Classifiche | Pubblicazione Live | Aggiorna risultati in tempo reale, notifiche automatiche, condivisione social |
@@ -56,54 +58,56 @@ Il sistema è composto dalle seguenti pagine principali:
 
 ## 3. Processo Principale
 
-### Flusso Organizzatore
-L'organizzatore accede al sistema, crea una nuova competizione configurando discipline, categorie e regole specifiche. Gestisce le registrazioni degli atleti validando categorie peso e pagamenti. Durante la gara utilizza l'interfaccia live per coordinare giudici e monitorare progressi. Al termine pubblica risultati ufficiali e genera documentazione.
+### Flusso Organizzatore Ottimizzato
+L'organizzatore accede alla dashboard unificata e utilizza il wizard guidato per creare competizioni con template predefiniti. Il sistema automatizza validazioni e configurazioni standard. Durante la gara, l'interfaccia live fullscreen fornisce controllo completo con un solo schermo, eliminando la necessità di navigare tra multiple pagine.
 
-### Flusso Giudice
-Il giudice riceve credenziali di accesso per competizioni specifiche. Durante la gara utilizza l'interfaccia touch per valutare tentativi in tempo reale. Il sistema sincronizza automaticamente i voti con altri giudici e calcola validità tentativi secondo regole federazione.
+### Flusso Giudice Semplificato
+Il giudice accede direttamente alla modalità giudizio tramite QR code o link diretto. L'interfaccia touch ottimizzata per tablet presenta solo i controlli essenziali con feedback immediato. La sincronizzazione è trasparente e automatica.
 
-### Flusso Atleta
-L'atleta si registra pubblicamente, seleziona competizioni disponibili e completa iscrizione con pagamento. Riceve conferme automatiche e può monitorare risultati live durante la gara. Accede a storico prestazioni e certificati partecipazione.
+### Flusso Atleta Immediato
+L'atleta completa l'iscrizione in 3 step guidati con validazione real-time. Durante la gara, accede alla vista pubblica per monitorare progressi senza necessità di login. Riceve notifiche automatiche sui risultati.
 
 ```mermaid
 graph TD
-    A[Dashboard] --> B[Gestione Competizioni]
-    A --> C[Gestione Atleti]
-    A --> D[Sistema Registrazioni]
-    B --> E[Interfaccia Giudizio Live]
-    D --> E
-    E --> F[Risultati e Classifiche]
-    F --> G[Export e Pubblicazione]
-    A --> H[Configurazioni Sistema]
+    A[Dashboard Unificata] --> B[Live Fullscreen]
+    A --> C[Gestione Smart]
+    A --> D[Vista Pubblica]
+    B --> E[Controlli Giudici]
+    B --> F[Monitor Esterni]
+    C --> G[Atleti & Competizioni]
+    C --> H[Registrazioni Express]
+    D --> I[Risultati Real-time]
+    E --> I
+    F --> I
 ```
 
 ## 4. Design dell'Interfaccia Utente
 
-### 4.1 Stile di Design
+### 4.1 Stile di Design Apple-Inspired
 
-- **Colori Primari**: Nero (#000000) per header e elementi principali, Blu (#3B82F6) per azioni primarie
-- **Colori Secondari**: Grigio (#6B7280) per testi secondari, Verde (#10B981) per successo, Rosso (#EF4444) per errori
-- **Stile Pulsanti**: Arrotondati con ombre sottili, effetti hover fluidi, stati disabilitati chiari
-- **Font**: Inter per interfaccia generale, dimensioni 14px base, 16px per titoli, 12px per dettagli
-- **Layout**: Design card-based con spaziature consistenti, navigazione top-bar, sidebar collassabile
-- **Icone**: Lucide React con stile outline, dimensioni 20px standard, 24px per azioni principali
+- **Colori Primari**: Sistema di colori adattivo con Bianco/Nero per contrasto massimo, Blu (#007AFF) per azioni primarie in stile iOS
+- **Colori Secondari**: Grigi semantici (#F2F2F7, #8E8E93), Verde (#34C759) per successo, Rosso (#FF3B30) per errori
+- **Stile Pulsanti**: Bordi arrotondati (12px), effetti glassmorphism, animazioni fluide 0.3s ease, stati focus accessibili
+- **Font**: SF Pro Display per titoli, SF Pro Text per corpo, dimensioni scalabili con preferenze sistema
+- **Layout**: Design minimalista con whitespace generoso, navigazione tab-based, gesture-friendly per touch
+- **Icone**: SF Symbols style con peso variabile, dimensioni adattive, animazioni micro-interazioni
 
-### 4.2 Panoramica Design Pagine
+### 4.2 Panoramica Design Pagine Ottimizzate
 
 | Nome Pagina | Nome Modulo | Elementi UI |
 |-------------|-------------|-------------|
-| Dashboard | Panoramica Generale | Grid responsive con card statistiche, grafici Recharts, lista notifiche con badge |
-| Dashboard | Widget Statistiche | Card con numeri grandi, grafici a torta per distribuzione, progress bar per obiettivi |
-| Gestione Atleti | Tabella Atleti | DataTable con filtri avanzati, paginazione, azioni bulk, modal per dettagli |
-| Gestione Atleti | Form Atleta | Form multi-step con validazione real-time, upload foto, selezione categoria automatica |
-| Gestione Competizioni | Form Competizione | Tabs per sezioni, date picker, select multipli per discipline, preview configurazione |
-| Gestione Competizioni | Lista Competizioni | Card layout con stati colorati, filtri per tipo sport, azioni rapide |
-| Sistema Registrazioni | Form Iscrizione Pubblica | Wizard step-by-step, validazione peso live, integrazione pagamenti, conferma email |
-| Interfaccia Giudizio Live | Panel Giudizio | Layout full-screen, pulsanti touch grandi, timer prominente, sync status |
-| Risultati e Classifiche | Tabelle Risultati | Tabelle sortabili con highlight record, export buttons, filtri categoria |
-| Configurazioni Sistema | Pannelli Configurazione | Accordion per sezioni, toggle switches, form inline editing, preview modifiche |
+| Dashboard Unificata | Centro di Controllo | Layout modulare con widget drag-drop, quick actions prominenti, notifiche intelligenti non invasive |
+| Dashboard Unificata | Statistiche Smart | Card animate con numeri grandi, grafici interattivi touch-friendly, indicatori di tendenza |
+| Live Fullscreen | Controllo Gara | Interface immersiva edge-to-edge, controlli gestuali, timer gigante con animazioni fluide |
+| Live Fullscreen | Vista Pubblica | Display ottimizzato per proiezione, informazioni essenziali, aggiornamenti real-time senza refresh |
+| Gestione Smart | Atleti Express | Lista con ricerca istantanea, swipe actions, form inline editing, import drag-drop |
+| Gestione Smart | Competizioni Wizard | Processo guidato con progress indicator, template selection, preview live delle impostazioni |
+| Registrazioni Express | Iscrizione 3-Step | Flow lineare con validazione progressiva, pagamenti one-tap, conferma immediata |
+| Controlli Giudici | Interface Touch | Pulsanti grandi per tablet, feedback aptico, sincronizzazione trasparente, modalità offline |
+| Risultati Real-time | Live Updates | Tabelle auto-refresh, highlight animati per nuovi record, export istantaneo, condivisione social |
+| Configurazioni Essenziali | Setup Rapido | Gruppi logici collassabili, toggle con preview, backup automatico, reset intelligente |
 
-### 4.3 Responsività
+### 4.3 Responsività e Accessibilità
 
-Il sistema è progettato mobile-first con breakpoint Tailwind standard. L'interfaccia si adatta automaticamente da smartphone a desktop con navigazione touch-friendly per giudici su tablet. Le tabelle utilizzano scroll orizzontale su mobile e layout stack per form complessi.
+Il sistema utilizza design adattivo con breakpoint fluidi e supporto completo per dispositivi touch. L'interfaccia live è ottimizzata per display esterni (4K/8K) con scaling automatico. Include supporto per modalità scura/chiara, high contrast, e preferenze di movimento ridotto. Navigazione completamente accessibile via tastiera e screen reader con ARIA labels completi.
 
