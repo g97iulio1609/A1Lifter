@@ -221,8 +221,8 @@ export const CSVImport: React.FC<CSVImportProps> = ({ onImportComplete }) => {
   const downloadTemplate = () => {
     const template = [
       ['Nome', 'Email', 'Data Nascita', 'Genere', 'Categoria Peso', 'Federazione'],
-      ['Mario Rossi', 'mario.rossi@email.com', '1990-01-15', 'M', '83kg', 'FIPL'],
-      ['Anna Verdi', 'anna.verdi@email.com', '1995-05-20', 'F', '63kg', 'FIPL'],
+      ['Nome Atleta', 'atleta@email.com', '1990-01-15', 'M', '83kg', 'FIPL'],
+      ['Nome Atleta 2', 'atleta2@email.com', '1995-05-20', 'F', '63kg', 'FIPL'],
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet(template);

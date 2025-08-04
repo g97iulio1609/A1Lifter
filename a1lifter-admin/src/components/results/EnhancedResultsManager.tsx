@@ -46,65 +46,8 @@ interface EnhancedResultsManagerProps {
 }
 
 export const EnhancedResultsManager: React.FC<EnhancedResultsManagerProps> = () => {
-  const [results] = useState<CompetitionResult[]>([
-    {
-      id: '1',
-      competitionName: 'Campionato Regionale Powerlifting 2024',
-      date: '2024-03-15',
-      location: 'Milano',
-      athleteName: 'Marco Rossi',
-      category: 'Open',
-      weightClass: '83kg',
-      discipline: 'Powerlifting',
-      squat: [170, 180, 185],
-      bench: [110, 120, 125],
-      deadlift: [190, 200, 210],
-      total: 520,
-      placing: 1,
-      participants: 15,
-      bodyWeight: 82.5,
-      wilks: 342.5,
-      dots: 385.2
-    },
-    {
-      id: '2',
-      competitionName: 'Campionato Regionale Powerlifting 2024',
-      date: '2024-03-15',
-      location: 'Milano',
-      athleteName: 'Laura Bianchi',
-      category: 'Junior',
-      weightClass: '63kg',
-      discipline: 'Powerlifting',
-      squat: [110, 120, 125],
-      bench: [65, 70, 72.5],
-      deadlift: [130, 140, 145],
-      total: 342.5,
-      placing: 1,
-      participants: 8,
-      bodyWeight: 62.8,
-      wilks: 398.7,
-      dots: 425.3
-    },
-    {
-      id: '3',
-      competitionName: 'Gara Locale Bench Press',
-      date: '2024-02-20',
-      location: 'Roma',
-      athleteName: 'Giuseppe Verdi',
-      category: 'Master',
-      weightClass: '93kg',
-      discipline: 'Bench Press',
-      squat: [0, 0, 0],
-      bench: [140, 150, 155],
-      deadlift: [0, 0, 0],
-      total: 155,
-      placing: 2,
-      participants: 12,
-      bodyWeight: 91.2,
-      wilks: 95.8,
-      dots: 102.1
-    }
-  ]);
+  const [results] = useState<CompetitionResult[]>([]);
+  // TODO: Caricare i risultati reali dal servizio Firebase
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState<string>('all');

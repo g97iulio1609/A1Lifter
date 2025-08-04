@@ -14,7 +14,7 @@ import {
   Weight
 } from 'lucide-react';
 import { useRegistrations } from '@/hooks/useCompetitions';
-import { testDataService } from '@/services/testDataInitializer';
+// Removed testDataService import - using real data only
 import { liveCompetitionService, type LiveCompetitionState, type AttemptResult } from '@/services/liveCompetition';
 
 interface LiveSessionDashboardProps {
@@ -193,14 +193,7 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
     competitionId
   ]);
 
-  // Inizializza dati di test se necessario
-  const handleInitializeTestData = async () => {
-    try {
-      await testDataService.createTestRegistrations(competitionId);
-    } catch (error) {
-      console.error('Error initializing test data:', error);
-    }
-  };
+  // Removed test data initialization - using real data only
 
   // Inizializza risultati per tutti gli atleti
   const initializeAthleteResults = () => {
@@ -243,17 +236,8 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
 
   // Ottieni nome atleta reale (genera nomi di fantasia per demo)
   const getAthleteName = (athleteId: string) => {
-    const demoNames = [
-      'Mario Rossi', 'Giuseppe Bianchi', 'Francesco Verdi', 'Antonio Neri',
-      'Alessandro Russo', 'Marco Ferrari', 'Lorenzo Romano', 'Matteo Costa',
-      'Andrea Ricci', 'Davide Moretti', 'Simone Leone', 'Luca Conti'
-    ];
-    
-    // Usa l'hash dell'ID per determinare un nome consistente
-    const hash = athleteId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    const nameIndex = hash % demoNames.length;
-    
-    return demoNames[nameIndex] || `Atleta ${athleteId}`;
+    // TODO: Ottenere il nome reale dell'atleta dal servizio Firebase
+    return `Atleta ${athleteId}`;
   };
 
   // Genera ordine di gara dinamico basato sui tentativi ancora da completare
@@ -545,12 +529,9 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
     return (
       <div className="p-6">
         <Alert>
-          <AlertDescription className="mb-4">
-            Nessuna registrazione trovata per questa competizione.
+          <AlertDescription>
+            Nessuna registrazione trovata per questa competizione. Aggiungi registrazioni reali per iniziare la sessione live.
           </AlertDescription>
-          <Button onClick={handleInitializeTestData}>
-            Inizializza Dati di Test
-          </Button>
         </Alert>
       </div>
     );
@@ -1295,4 +1276,4 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
 
     </div>
   );
-}; 
+};

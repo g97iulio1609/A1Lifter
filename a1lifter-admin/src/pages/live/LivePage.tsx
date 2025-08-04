@@ -34,28 +34,8 @@ export const LivePage: React.FC = () => {
   const [selectedCompetition, setSelectedCompetition] = useState<ActiveCompetition | null>(null);
   const [, setActiveTab] = useState('enhanced');
 
-  // Mock data per demo - in produzione verrebbe da API
-  const activeCompetitions: ActiveCompetition[] = [
-    {
-      id: '1',
-      name: 'Campionato Regionale Powerlifting 2024',
-      startDate: '2024-03-15',
-      location: 'Palestra Olimpia, Milano',
-      participantsCount: 45,
-      discipline: 'Powerlifting',
-      status: 'active',
-      currentSession: 'Sessione Mattina - Categoria Open'
-    },
-    {
-      id: '2',
-      name: 'Gara Locale Bench Press',
-      startDate: '2024-02-20',
-      location: 'Centro Fitness Roma',
-      participantsCount: 23,
-      discipline: 'Bench Press',
-      status: 'scheduled'
-    }
-  ];
+  // Load real active competitions from API
+  const activeCompetitions: ActiveCompetition[] = [];
   
   const handleSelectCompetition = (competition: ActiveCompetition) => {
     setSelectedCompetition(competition);

@@ -82,7 +82,7 @@ export const AthleteForm: React.FC<AthleteFormProps> = ({
               <Input
                 id="name"
                 {...register('name')}
-                placeholder="Mario Rossi"
+                placeholder="Nome Cognome"
               />
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>

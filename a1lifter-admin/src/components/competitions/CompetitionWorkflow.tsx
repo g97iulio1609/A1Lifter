@@ -57,56 +57,17 @@ export const CompetitionWorkflow: React.FC<CompetitionWorkflowProps> = ({
   const navigate = useNavigate();
   const [selectedCompetition, setSelectedCompetition] = useState<WorkflowCompetition | null>(null);
 
-  // Mock data per demo
-  const mockCompetitions: WorkflowCompetition[] = [
-    {
-      id: '1',
-      name: 'Campionato Regionale Powerlifting 2024',
-      startDate: '2024-03-15',
-      endDate: '2024-03-17',
-      status: 'scheduled',
-      participantsCount: 45,
-      discipline: 'Powerlifting',
-      location: 'Palestra Olimpia, Milano',
-      progress: 75
-    },
-    {
-      id: '2',
-      name: 'Gara Locale Bench Press',
-      startDate: '2024-02-20',
-      endDate: '2024-02-20',
-      status: 'active',
-      participantsCount: 23,
-      discipline: 'Bench Press',
-      location: 'Centro Fitness Roma',
-      progress: 40
-    },
-    {
-      id: '3',
-      name: 'Coppa Italia Powerlifting',
-      startDate: '2024-01-15',
-      endDate: '2024-01-17',
-      status: 'completed',
-      participantsCount: 78,
-      discipline: 'Powerlifting',
-      location: 'PalaFitness Torino',
-      progress: 100
-    }
-  ];
-
-  const displayCompetitions: WorkflowCompetition[] = competitions.length > 0 
-    ? competitions.map(comp => ({
-        id: comp.id,
-        name: comp.name,
-        startDate: comp.date.toISOString(),
-        endDate: comp.date.toISOString(),
-        status: comp.status === 'draft' ? 'draft' : comp.status === 'active' ? 'scheduled' : comp.status === 'in_progress' ? 'active' : 'completed',
-        participantsCount: 0, // Default value
-        discipline: comp.type.charAt(0).toUpperCase() + comp.type.slice(1),
-        location: comp.location,
-        progress: comp.status === 'completed' ? 100 : comp.status === 'in_progress' ? 50 : comp.status === 'active' ? 25 : 0
-      }))
-    : mockCompetitions;
+  const displayCompetitions: WorkflowCompetition[] = competitions.map(comp => ({
+    id: comp.id,
+    name: comp.name,
+    startDate: comp.date.toISOString(),
+    endDate: comp.date.toISOString(),
+    status: comp.status === 'draft' ? 'draft' : comp.status === 'active' ? 'scheduled' : comp.status === 'in_progress' ? 'active' : 'completed',
+    participantsCount: 0, // Will be loaded from registrations service
+    discipline: comp.type.charAt(0).toUpperCase() + comp.type.slice(1),
+    location: comp.location,
+    progress: comp.status === 'completed' ? 100 : comp.status === 'in_progress' ? 50 : comp.status === 'active' ? 25 : 0
+  }));
 
   const getWorkflowSteps = (competition: WorkflowCompetition): WorkflowStep[] => {
     const baseSteps: WorkflowStep[] = [
@@ -219,8 +180,23 @@ export const CompetitionWorkflow: React.FC<CompetitionWorkflowProps> = ({
 
         {/* Panoramica Competizioni */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-4">
-            {displayCompetitions.map((competition) => (
+          {displayCompetitions.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nessuna Competizione</h3>
+                <p className="text-muted-foreground mb-4">
+                  Non ci sono competizioni create. Inizia creando la tua prima competizione.
+                </p>
+                <Button onClick={() => navigate('/competitions/create')} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Crea Prima Competizione
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {displayCompetitions.map((competition) => (
               <Card 
                 key={competition.id} 
                 className={cn(
@@ -267,7 +243,8 @@ export const CompetitionWorkflow: React.FC<CompetitionWorkflowProps> = ({
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Workflow Dettagliato */}

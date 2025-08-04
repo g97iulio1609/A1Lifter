@@ -103,15 +103,8 @@ export const OptimizedLiveInterface: React.FC<OptimizedLiveInterfaceProps> = ({
 
   // Mock data per demo
   useEffect(() => {
-    setCurrentAttempt({
-      athleteId: '1',
-      athleteName: 'Mario Rossi',
-      athleteNumber: 42,
-      discipline: 'Squat',
-      attemptNumber: 2,
-      requestedWeight: 180,
-      unit: 'kg'
-    });
+    // TODO: Caricare i dati reali dell'atleta corrente
+    setCurrentAttempt(null);
 
     setJudges([
       { id: '1', name: 'Giudice 1', position: 1, isConnected: true, hasVoted: true, vote: 'valid' },

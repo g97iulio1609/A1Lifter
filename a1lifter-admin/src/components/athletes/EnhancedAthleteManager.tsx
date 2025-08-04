@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,11 @@ import {
   Phone,
   Star,
   Award,
-  Edit
+  Edit,
+  Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { athletesService } from '@/services/athletes';
 import type { Athlete } from '@/types';
 
 interface EnhancedAthleteManagerProps {
@@ -28,77 +31,9 @@ interface EnhancedAthleteManagerProps {
 }
 
 export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () => {
-  const [athletes, setAthletes] = useState<Athlete[]>([
-    {
-      id: '1',
-      name: 'Marco Rossi',
-      email: 'marco.rossi@email.com',
-      phone: '+39 333 1234567',
-      birthDate: new Date('1990-05-15'),
-      gender: 'M',
-      category: 'Open',
-      weightClass: '83kg',
-      bodyWeight: 82.5,
-      team: 'PowerTeam Milano',
-      federation: 'FIPL',
-      personalRecords: { squat: 180, bench: 120, deadlift: 200 },
-      personalBests: {
-        squat: 180,
-        bench: 120,
-        deadlift: 200
-      },
-      competitions: 15,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: '2',
-      name: 'Laura Bianchi',
-      email: 'laura.bianchi@email.com',
-      phone: '+39 333 7654321',
-      birthDate: new Date('1995-08-22'),
-      gender: 'F',
-      category: 'Junior',
-      weightClass: '63kg',
-      bodyWeight: 62.8,
-      team: 'Strength Sisters',
-      federation: 'FIPL',
-      personalRecords: { squat: 120, bench: 70, deadlift: 140 },
-      personalBests: {
-        squat: 120,
-        bench: 70,
-        deadlift: 140
-      },
-      competitions: 8,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: '3',
-      name: 'Giuseppe Verdi',
-      email: 'giuseppe.verdi@email.com',
-      phone: '+39 333 9876543',
-      birthDate: new Date('1985-12-03'),
-      gender: 'M',
-      category: 'Master',
-      weightClass: '93kg',
-      bodyWeight: 91.2,
-      team: 'Iron Warriors',
-      federation: 'FIPL',
-      personalRecords: { squat: 220, bench: 150, deadlift: 250 },
-      personalBests: {
-        squat: 220,
-        bench: 150,
-        deadlift: 250
-      },
-      competitions: 25,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  ]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -137,30 +72,38 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
     return matchesSearch && matchesCategory && matchesWeightClass;
   });
 
-  const handleAddAthlete = () => {
-    if (newAthlete.name && newAthlete.email) {
-      const athlete: Athlete = {
-        id: Date.now().toString(),
+  const handleAddAthlete = async () => {
+    if (!newAthlete.name || !newAthlete.email) {
+      toast.error('Nome e email sono obbligatori');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const athleteData: Omit<Athlete, 'id' | 'createdAt' | 'updatedAt'> = {
         name: newAthlete.name,
         email: newAthlete.email,
-        phone: newAthlete.phone,
+        phone: newAthlete.phone || '',
         birthDate: newAthlete.birthDate || new Date(),
         gender: newAthlete.gender || 'M',
-        bodyweight: newAthlete.bodyWeight,
-        bodyWeight: newAthlete.bodyWeight,
+        bodyweight: newAthlete.bodyWeight || 0,
+        bodyWeight: newAthlete.bodyWeight || 0,
         weightClass: newAthlete.weightClass || '',
         federation: 'FIPL',
-        team: newAthlete.team,
-        category: newAthlete.category,
+        team: newAthlete.team || '',
+        category: newAthlete.category || 'Open',
         isActive: newAthlete.isActive ?? true,
         personalRecords: {},
-        personalBests: newAthlete.personalBests,
-        competitions: newAthlete.competitions,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        personalBests: newAthlete.personalBests || { squat: 0, bench: 0, deadlift: 0 },
+        competitions: newAthlete.competitions || 0
       };
       
-      setAthletes([...athletes, athlete]);
+      const athleteId = await athletesService.createAthlete(athleteData);
+      
+      // Ricarica la lista degli atleti
+      await loadAthletes();
+      
+      // Reset form
       setNewAthlete({
         name: '',
         email: '',
@@ -176,12 +119,42 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
         isActive: true
       });
       setIsAddDialogOpen(false);
+      toast.success('Atleta aggiunto con successo!');
+    } catch (error) {
+      console.error('Errore durante il salvataggio dell\'atleta:', error);
+      toast.error('Errore durante il salvataggio dell\'atleta');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteAthlete = (id: string) => {
-    setAthletes(athletes.filter(athlete => athlete.id !== id));
+  const handleDeleteAthlete = async (id: string) => {
+    try {
+      await athletesService.deleteAthlete(id);
+      await loadAthletes();
+      toast.success('Atleta eliminato con successo!');
+    } catch (error) {
+      console.error('Errore durante l\'eliminazione dell\'atleta:', error);
+      toast.error('Errore durante l\'eliminazione dell\'atleta');
+    }
   };
+
+  const loadAthletes = async () => {
+    try {
+      setLoading(true);
+      const athletesData = await athletesService.getAthletes();
+      setAthletes(athletesData);
+    } catch (error) {
+      console.error('Errore durante il caricamento degli atleti:', error);
+      toast.error('Errore durante il caricamento degli atleti');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAthletes();
+  }, []);
 
   const getAthleteStats = () => {
     const total = athletes.length;
@@ -355,8 +328,15 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Annulla
                 </Button>
-                <Button onClick={handleAddAthlete}>
-                  Aggiungi Atleta
+                <Button onClick={handleAddAthlete} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvataggio...
+                    </>
+                  ) : (
+                    'Aggiungi Atleta'
+                  )}
                 </Button>
               </div>
             </DialogContent>

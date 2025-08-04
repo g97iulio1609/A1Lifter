@@ -46,7 +46,7 @@ export const JudgeModeInterface: React.FC<JudgeModeInterfaceProps> = ({
   // Determina alzata corrente dall'attempt
   const currentLift = attempt ? {
     id: attempt.id,
-    athleteName: attempt.athleteName || 'Mario Rossi', // TODO: ottenere da registro atleti
+    athleteName: attempt.athleteName || 'Atleta', // TODO: ottenere da registro atleti
     athleteNumber: 42, // TODO: ottenere da registro atleti  
     discipline: attempt.discipline,
     attemptNumber: attempt.attemptNumber,

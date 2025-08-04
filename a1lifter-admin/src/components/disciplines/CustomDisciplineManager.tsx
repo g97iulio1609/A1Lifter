@@ -51,42 +51,12 @@ const CustomDisciplineManager: React.FC<CustomDisciplineManagerProps> = ({
     try {
       setIsLoading(true);
       
-      // Mock data - in real implementation, this would come from a service
-      const mockDisciplines: CustomDiscipline[] = [
-        {
-          id: '1',
-          name: 'Squat Raw',
-          sport: 'powerlifting',
-          description: 'Squat senza supporti',
-          scoringType: 'weight',
-          unit: 'kg',
-          equipment: ['Raw (senza supporti)'],
-          rules: 'Discesa fino a quando le anche sono sotto il livello delle ginocchia, poi risalita completa.',
-          maxAttempts: 3,
-          timeLimit: 60,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          name: 'Deadlift Equipped',
-          sport: 'powerlifting',
-          description: 'Stacco da terra con supporti',
-          scoringType: 'weight',
-          unit: 'kg',
-          equipment: ['Equipped (con tuta)'],
-          rules: 'Sollevamento del bilanciere da terra fino alla posizione eretta completa.',
-          maxAttempts: 3,
-          timeLimit: 60,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
+      // Load disciplines from service - currently returns empty array
+      // In a real implementation, this would fetch from disciplinesService
+      const realDisciplines: CustomDiscipline[] = [];
       
-      setDisciplines(mockDisciplines);
-      onDisciplinesChange?.(mockDisciplines);
+      setDisciplines(realDisciplines);
+      onDisciplinesChange?.(realDisciplines);
       
     } catch (error) {
       console.error('Error loading disciplines:', error);

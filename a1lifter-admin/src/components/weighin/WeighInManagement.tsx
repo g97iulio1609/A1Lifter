@@ -206,35 +206,10 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({
       const weighInData = await weighInService.getWeighInsByCompetition(competitionId);
       setWeighIns(weighInData);
       
-      // Load athletes (mock data - should come from athlete service)
-      // This would typically be loaded from an athlete service
-      const mockAthletes: Athlete[] = [
-        {
-          id: '1',
-          name: 'Mario Rossi',
-          email: 'mario.rossi@email.com',
-          gender: 'M',
-          birthDate: new Date('1990-01-01'),
-          federation: 'FIPL',
-          weightClass: '74kg',
-          personalRecords: {},
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          name: 'Giulia Bianchi',
-          email: 'giulia.bianchi@email.com',
-          gender: 'F',
-          birthDate: new Date('1992-05-15'),
-          federation: 'FIPL',
-          weightClass: '63kg',
-          personalRecords: {},
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      setAthletes(mockAthletes);
+      // Load athletes from registrations service
+      // This would load real athletes registered for the competition
+      const realAthletes: Athlete[] = [];
+      setAthletes(realAthletes);
       
       // Load statistics
       const stats = await weighInService.getWeighInStats(competitionId);

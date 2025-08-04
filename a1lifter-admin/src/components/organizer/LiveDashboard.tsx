@@ -16,26 +16,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOrganizerDashboard, useLiveStats, useAlerts } from '@/hooks/useOrganizer';
-import { testDataService } from '@/services/testDataInitializer';
-import { Button } from '@/components/ui/button';
+// Removed testDataService import - using real data only
+// Removed Button import - no longer needed
 
 interface LiveDashboardProps {
   competitionId: string;
 }
 
 export const LiveDashboard: React.FC<LiveDashboardProps> = ({ competitionId }) => {
-  const { data: dashboardData, isLoading, error, refetch } = useOrganizerDashboard(competitionId);
+  const { data: dashboardData, isLoading, error } = useOrganizerDashboard(competitionId);
   const { data: liveStats } = useLiveStats(competitionId);
   const { data: alerts = [] } = useAlerts(competitionId);
 
-  const handleInitializeTestData = async () => {
-    try {
-      await testDataService.createTestRegistrations(competitionId);
-      refetch();
-    } catch (error) {
-      console.error('Error initializing test data:', error);
-    }
-  };
+  // Removed test data initialization - using real data only
 
   if (isLoading) {
     return (
@@ -64,14 +57,9 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({ competitionId }) =
             <p className="text-muted-foreground">
               {error ? 'Errore nel caricamento dei dati della competizione' : 'Nessun dato disponibile per questa competizione'}
             </p>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Per iniziare, aggiungi registrazioni di test per questa competizione
-              </p>
-              <Button onClick={handleInitializeTestData} variant="outline">
-                Inizializza Dati di Test
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Aggiungi registrazioni reali per visualizzare i dati della competizione
+            </p>
           </div>
         </CardContent>
       </Card>

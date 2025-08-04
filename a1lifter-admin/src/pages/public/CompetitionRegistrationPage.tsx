@@ -310,7 +310,7 @@ export const CompetitionRegistrationPage: React.FC = () => {
                       <Input
                         id="name"
                         {...form.register('name')}
-                        placeholder="Mario Rossi"
+                        placeholder="Nome Cognome"
                       />
                       {form.formState.errors.name && (
                         <p className="text-sm text-red-600 mt-1">
@@ -325,7 +325,7 @@ export const CompetitionRegistrationPage: React.FC = () => {
                         id="email"
                         type="email"
                         {...form.register('email')}
-                        placeholder="mario.rossi@email.com"
+                        placeholder="nome@email.com"
                       />
                       {form.formState.errors.email && (
                         <p className="text-sm text-red-600 mt-1">
@@ -488,7 +488,7 @@ export const CompetitionRegistrationPage: React.FC = () => {
                       <Input
                         id="emergencyName"
                         {...form.register('emergencyName')}
-                        placeholder="Anna Rossi"
+                        placeholder="Nome Contatto"
                       />
                       {form.formState.errors.emergencyName && (
                         <p className="text-sm text-red-600 mt-1">

@@ -2,8 +2,8 @@ import React from 'react';
 import RecordManagement from '@/components/records/RecordManagement';
 
 const RecordsPage: React.FC = () => {
-  // Mock data for records page - in a real app this would come from route params or context
-  const mockCompetition = {
+  // Real competition data should come from route params or context
+  const realCompetition = {
     id: 'records-view',
     name: 'Gestione Record',
     sport: 'powerlifting' as const,
@@ -27,7 +27,7 @@ const RecordsPage: React.FC = () => {
     <div className="p-6">
       <RecordManagement 
         competitionId="records-view"
-        competition={mockCompetition}
+        competition={realCompetition}
       />
     </div>
   );

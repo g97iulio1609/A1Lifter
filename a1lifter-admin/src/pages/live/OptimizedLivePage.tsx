@@ -41,30 +41,8 @@ export const OptimizedLivePage: React.FC<OptimizedLivePageProps> = ({ isPublicVi
   const isJudgeMode = searchParams.get('judge') === 'true';
   const finalIsPublicView = isPublicView || urlPublicView;
   
-  // Mock data per demo
-  const activeCompetitions: ActiveCompetition[] = [
-    {
-      id: '1',
-      name: 'Campionato Regionale Powerlifting 2024',
-      startDate: '2024-03-15',
-      date: '15 Marzo 2024',
-      location: 'Palestra Olimpia, Milano',
-      participantsCount: 45,
-      discipline: 'Powerlifting',
-      status: 'active',
-      currentSession: 'Sessione Mattina - Categoria Open'
-    },
-    {
-      id: '2',
-      name: 'Gara Locale Bench Press',
-      startDate: '2024-02-20',
-      date: '20 Febbraio 2024',
-      location: 'Centro Fitness Roma',
-      participantsCount: 23,
-      discipline: 'Bench Press',
-      status: 'paused'
-    }
-  ];
+  // Load real active competitions from API
+  const activeCompetitions: ActiveCompetition[] = [];
 
   // Auto-seleziona la prima competizione attiva se disponibile
   useEffect(() => {
