@@ -8,12 +8,13 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "bundler",
+  "moduleResolution": "node",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
+  "jsx": "react-jsx",
+  "types": ["vite/client", "node"],
 
     /* Linting */
     "strict": true,

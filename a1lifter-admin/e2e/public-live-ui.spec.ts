@@ -259,7 +259,9 @@ test.describe('Public Live UI', () => {
       // Test horizontal scroll if needed
       const isScrollable = await leaderboard.evaluate(el => el.scrollWidth > el.clientWidth)
       if (isScrollable) {
-        await leaderboard.scroll({ left: 100 })
+        await leaderboard.evaluate(el => {
+          el.scrollBy({ left: 100, behavior: 'auto' })
+        })
       }
     })
 
@@ -315,27 +317,44 @@ test.describe('Public Live UI', () => {
       await page.waitForLoadState('networkidle')
       
       // Measure performance
-      const metrics = await page.evaluate(() => {
-        return new Promise((resolve) => {
-          new PerformanceObserver((list) => {
+      const metrics = await page.evaluate<{ lcp: number; cls: number }>(() => {
+        return new Promise<{ lcp: number; cls: number }>((resolve) => {
+          let latestLcp = 0
+          let cumulativeCls = 0
+
+          type LayoutShiftEntry = PerformanceEntry & { value: number; hadRecentInput?: boolean }
+
+          const observer = new PerformanceObserver((list) => {
             const entries = list.getEntries()
-            const lcp = entries.find(entry => entry.entryType === 'largest-contentful-paint')
-            const cls = entries.find(entry => entry.entryType === 'layout-shift')
-            
-            resolve({
-              lcp: lcp?.startTime || 0,
-              cls: cls?.value || 0
-            })
-          }).observe({ entryTypes: ['largest-contentful-paint', 'layout-shift'] })
-          
+            for (const entry of entries) {
+              if (entry.entryType === 'largest-contentful-paint') {
+                latestLcp = Math.max(latestLcp, entry.startTime || 0)
+              } else if (entry.entryType === 'layout-shift') {
+                const ls = entry as LayoutShiftEntry
+                if (!ls.hadRecentInput) {
+                  cumulativeCls += ls.value || 0
+                }
+              }
+            }
+          })
+
+          observer.observe({ entryTypes: ['largest-contentful-paint', 'layout-shift'] } as PerformanceObserverInit)
+
           // Fallback timeout
-          setTimeout(() => resolve({ lcp: 0, cls: 0 }), 5000)
+          setTimeout(() => {
+            try {
+              observer.disconnect()
+            } catch (_err) {
+              void _err
+            }
+            resolve({ lcp: latestLcp, cls: cumulativeCls })
+          }, 5000)
         })
       })
       
       // Check Core Web Vitals thresholds
-      expect(metrics.lcp).toBeLessThan(2500) // LCP < 2.5s
-      expect(metrics.cls).toBeLessThan(0.1)  // CLS < 0.1
+  expect(metrics.lcp).toBeLessThan(2500)
+  expect(metrics.cls).toBeLessThan(0.1)
     })
 
     test('should handle many real-time updates efficiently', async ({ page }) => {

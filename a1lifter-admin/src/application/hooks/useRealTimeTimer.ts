@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, type DocumentData, type DocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { sportPluginRegistry, type SupportedSport } from '@/domain/plugins/SportPluginRegistry';
 
@@ -156,9 +156,9 @@ export const useRealTimeTimer = (eventId: string): UseRealTimeTimerReturn => {
 
     const unsubscribe = onSnapshot(
       timerDocRef,
-      (doc) => {
+      (doc: DocumentSnapshot<DocumentData>) => {
         if (doc.exists()) {
-          const serverData = doc.data();
+          const serverData = doc.data() as DocumentData;
           const serverSyncTime = serverData.syncedAt || 0;
           
           // Only update if server data is newer than our last sync
@@ -174,7 +174,9 @@ export const useRealTimeTimer = (eventId: string): UseRealTimeTimerReturn => {
             
             // Calculate time drift and adjust
             if (serverData.lastUpdated && serverState.isRunning) {
-              const serverTime = serverData.lastUpdated.toDate?.() || new Date(serverData.lastUpdated);
+              const serverTime = typeof serverData.lastUpdated?.toDate === 'function'
+                ? serverData.lastUpdated.toDate()
+                : new Date(serverData.lastUpdated);
               const timeDrift = Math.floor((Date.now() - serverTime.getTime()) / 1000);
               serverState.timeRemaining = Math.max(0, serverState.timeRemaining - timeDrift);
             }
@@ -185,7 +187,7 @@ export const useRealTimeTimer = (eventId: string): UseRealTimeTimerReturn => {
           }
         }
       },
-      (error) => {
+  (error: unknown) => {
         console.error('Timer sync error:', error);
         setError('Timer connection lost');
         setIsConnected(false);
