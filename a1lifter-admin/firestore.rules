@@ -2,60 +2,87 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regole per gli utenti
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Helper functions for role-based access control
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    // Regole per gli atleti
+    function hasRole(role) {
+      return isAuthenticated() && 
+             request.auth.token.get('role', '') == role;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return hasRole('admin');
+    }
+    
+    function isJudge() {
+      return hasRole('judge') || isAdmin();
+    }
+    
+    function isOrganizer() {
+      return hasRole('organizer') || isAdmin();
+    }
+    
+    // Events collection - aligned with Clean Architecture
+    match /events/{eventId} {
+      allow read: if true; // Public read for live viewing
+      allow create: if isOrganizer();
+      allow update: if isOrganizer() && 
+                       resource.data.organizer == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+    
+    // Athletes collection
     match /athletes/{athleteId} {
-      allow read, write: if request.auth != null;
+      allow read: if true; // Public read for competitions
+      allow create: if isAuthenticated();
+      allow update: if isOwner(resource.data.userId) || isOrganizer();
+      allow delete: if isAdmin();
     }
     
-    // Regole per le competizioni
-    match /competitions/{competitionId} {
-      allow read, write: if request.auth != null;
+    // Attempts collection - core competition data
+    match /attempts/{attemptId} {
+      allow read: if true; // Public read for live viewing
+      allow create: if isJudge();
+      allow update: if isJudge() && 
+                       resource.data.status in ['pending', 'in_progress'];
+      allow delete: if isAdmin();
     }
     
-    // Regole per le registrazioni
-    match /registrations/{registrationId} {
-      allow read, write: if request.auth != null;
+    // User profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
     }
     
-    // Regole per i risultati
-    match /results/{resultId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Regole per le discipline personalizzate
-    match /disciplines/{disciplineId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Regole per i dettagli delle registrazioni
-    match /registrationDetails/{detailId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Regole per le sessioni live
+    // Live sessions for real-time updates
     match /liveSessions/{sessionId} {
-      allow read, write: if request.auth != null;
+      allow read: if true; // Public read for live viewing
+      allow write: if isJudge();
     }
     
-    // Regole per la coda live
-    match /liveQueue/{queueId} {
-      allow read, write: if request.auth != null;
+    // Judge decisions - sensitive data
+    match /judgeDecisions/{decisionId} {
+      allow read: if isJudge();
+      allow write: if isJudge() && 
+                      request.auth.uid == resource.data.judgeId;
     }
     
-    // Regole per i risultati dei tentativi
-    match /attemptResults/{attemptId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Regole per i documenti pubblici (lettura per tutti)
+    // Public data for SEO and live viewing
     match /public/{document=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isOrganizer();
+    }
+    
+    // System configuration (admin only)
+    match /config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
   }
 }

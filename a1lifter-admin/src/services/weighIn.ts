@@ -11,6 +11,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import type { UpdateData, DocumentData } from 'firebase/firestore';
 import type { WeighIn, CategoryConfig } from '@/types';
 
 export class WeighInService {
@@ -95,10 +96,11 @@ export class WeighInService {
   async updateWeighIn(weighInId: string, updates: Partial<WeighIn>): Promise<void> {
     try {
       const docRef = doc(this.collection, weighInId);
-      await updateDoc(docRef, {
+      const updateData: Record<string, unknown> = {
         ...updates,
         updatedAt: serverTimestamp()
-      });
+      };
+  await updateDoc(docRef, updateData as UpdateData<DocumentData>);
     } catch (error) {
       console.error('Error updating weigh-in:', error);
       throw new Error('Errore durante l\'aggiornamento della pesatura');
@@ -266,15 +268,15 @@ export class WeighInService {
   }
 
   // Esporta pesature per competizione
-  async exportWeighIns(competitionId: string): Promise<any[]> {
+  async exportWeighIns(competitionId: string): Promise<Record<string, string | number>[]> {
     try {
       const weighIns = await this.getWeighInsByCompetition(competitionId);
       
       return weighIns.map(weighIn => ({
         'ID Atleta': weighIn.athleteId,
         'Peso Corporeo (kg)': weighIn.bodyWeight,
-        'Data Pesatura': weighIn.weighInTime.toLocaleDateString(),
-        'Ora Pesatura': weighIn.weighInTime.toLocaleTimeString(),
+        'Data Pesatura': weighIn.weighInTime instanceof Date ? weighIn.weighInTime.toLocaleDateString() : 'N/A',
+        'Ora Pesatura': weighIn.weighInTime instanceof Date ? weighIn.weighInTime.toLocaleTimeString() : 'N/A',
         'Stato': weighIn.status,
         'Ufficiale': weighIn.isOfficial ? 'Sì' : 'No',
         'Giudice Testimone': weighIn.witnessJudgeId || 'N/A',

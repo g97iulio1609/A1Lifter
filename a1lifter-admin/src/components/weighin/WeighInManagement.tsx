@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Scale, Search, Plus, Download, User, AlertTriangle, CheckCircle, XCircle, Check, X } from 'lucide-react';
 import { weighInService } from '@/services/weighIn';
 import { calculationService } from '@/services/calculations';
@@ -192,36 +192,35 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [statistics, setStatistics] = useState<any>(null);
+  const [statistics, setStatistics] = useState<{
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+  } | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [competitionId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      // Load weigh-ins
       const weighInData = await weighInService.getWeighInsByCompetition(competitionId);
       setWeighIns(weighInData);
-      
-      // Load athletes from registrations service
-      // This would load real athletes registered for the competition
       const realAthletes: Athlete[] = [];
       setAthletes(realAthletes);
-      
-      // Load statistics
       const stats = await weighInService.getWeighInStats(competitionId);
       setStatistics(stats);
-      
     } catch (error) {
       console.error('Error loading weigh-in data:', error);
       toast.error('Errore durante il caricamento dei dati');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [competitionId]);
+
+  useEffect(() => {
+    loadData();
+  }, [competitionId, loadData]);
+
+  // loadData memoized sopra
 
   const handleApproveWeighIn = async (weighInId: string) => {
     try {
@@ -252,7 +251,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({
       // Create and download CSV file
       const csvContent = [
         ['ID Atleta', 'Peso Corporeo (kg)', 'Data Pesatura', 'Ora Pesatura', 'Stato', 'Ufficiale', 'Giudice Testimone', 'Note'].join(','),
-        ...data.map((weighIn: any) => [
+  ...data.map((weighIn: Record<string, string | number | boolean | null | undefined>) => [
           weighIn['ID Atleta'],
           weighIn['Peso Corporeo (kg)'],
           weighIn['Data Pesatura'],
@@ -409,7 +408,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({
           <div className="sm:w-48">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">Tutti gli stati</option>

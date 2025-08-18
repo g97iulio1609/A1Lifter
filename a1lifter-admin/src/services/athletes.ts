@@ -13,6 +13,7 @@ import {
   QueryConstraint 
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import type { UpdateData, DocumentData } from 'firebase/firestore';
 import type { Athlete } from '@/types';
 
 const ATHLETES_COLLECTION = 'athletes';
@@ -97,7 +98,7 @@ export const athletesService = {
   // Aggiorna un atleta esistente
   async updateAthlete(id: string, athleteData: Partial<Omit<Athlete, 'id' | 'createdAt'>>): Promise<void> {
     const docRef = doc(db, ATHLETES_COLLECTION, id);
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...athleteData,
       updatedAt: Timestamp.now(),
     };
@@ -106,7 +107,7 @@ export const athletesService = {
       updateData.birthDate = Timestamp.fromDate(athleteData.birthDate);
     }
 
-    await updateDoc(docRef, updateData);
+  await updateDoc(docRef, updateData as UpdateData<DocumentData>);
   },
 
   // Elimina un atleta

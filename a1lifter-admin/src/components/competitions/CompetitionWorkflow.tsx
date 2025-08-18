@@ -28,7 +28,7 @@ interface WorkflowStep {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   status: 'completed' | 'current' | 'pending';
   href?: string;
   action?: () => void;

@@ -3,6 +3,7 @@ import { Settings, Save, RotateCcw, Timer, Users, Trophy, Shield, Bell, HardDriv
 import { configService } from '@/services/config';
 import type { SystemConfig } from '@/types';
 import { toast } from 'sonner';
+import { OrphanedRegistrationsCleanup } from '@/components/admin/OrphanedRegistrationsCleanup';
 
 interface SystemConfigProps {
   onConfigChange?: (config: SystemConfig) => void;
@@ -30,8 +31,36 @@ const ConfigSection: React.FC<ConfigSectionProps> = ({ title, description, icon,
   );
 };
 
+type SystemConfigValues = {
+  systemName?: string;
+  version?: string;
+  defaultLanguage?: string;
+  timezone?: string;
+  requireTwoFactor?: boolean;
+  sessionTimeout?: number;
+  maxParticipantsPerCompetition?: number;
+  registrationAdvanceDays?: number;
+  allowLateRegistration?: boolean;
+  requireWeighIn?: boolean;
+  powerliftingAttemptTime?: number;
+  weightliftingAttemptTime?: number;
+  breakTime?: number;
+  disciplineChangeTime?: number;
+  allowSelfRegistration?: boolean;
+  requireEmailVerification?: boolean;
+  defaultUserRole?: string;
+  enableEmailNotifications?: boolean;
+  enablePushNotifications?: boolean;
+  notifyRecordBreaks?: boolean;
+  notifyTechnicalIssues?: boolean;
+  enableAutoBackup?: boolean;
+  backupFrequencyHours?: number;
+  maxBackupsToKeep?: number;
+  compressBackups?: boolean;
+};
+
 const SystemConfigComponent: React.FC<SystemConfigProps> = ({ onConfigChange }) => {
-  const [config, setConfig] = useState<any>({});
+  const [config, setConfig] = useState<Partial<SystemConfigValues>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -47,12 +76,16 @@ const SystemConfigComponent: React.FC<SystemConfigProps> = ({ onConfigChange }) 
       const systemConfig = await configService.getAllConfigs();
       
       // Converte l'array in oggetto per facilità d'uso
-      const configObject: any = {};
+      const configObject: Partial<SystemConfigValues> = {};
       systemConfig.forEach(item => {
         if (typeof item.value === 'object' && item.value !== null) {
           Object.assign(configObject, item.value);
         } else {
-          configObject[item.key] = item.value;
+          const k = item.key as keyof SystemConfigValues;
+          // assegna solo se la chiave è parte del nostro shape
+          if (k in ({} as SystemConfigValues)) {
+            (configObject as Record<string, unknown>)[k as string] = item.value as unknown;
+          }
         }
       });
       setConfig(configObject);
@@ -64,7 +97,7 @@ const SystemConfigComponent: React.FC<SystemConfigProps> = ({ onConfigChange }) 
     }
   };
 
-  const handleConfigUpdate = (key: string, value: any) => {
+  const handleConfigUpdate = <K extends keyof SystemConfigValues>(key: K, value: SystemConfigValues[K]) => {
     if (!config) return;
     
     const updatedConfig = { ...config, [key]: value };
@@ -72,7 +105,7 @@ const SystemConfigComponent: React.FC<SystemConfigProps> = ({ onConfigChange }) 
     setHasChanges(true);
     
     if (onConfigChange) {
-      onConfigChange(updatedConfig);
+      onConfigChange(updatedConfig as unknown as SystemConfig);
     }
   };
 
@@ -294,6 +327,8 @@ const SystemConfigComponent: React.FC<SystemConfigProps> = ({ onConfigChange }) 
                 </div>
               </div>
             </ConfigSection>
+            
+            <OrphanedRegistrationsCleanup />
           </>
         )}
 

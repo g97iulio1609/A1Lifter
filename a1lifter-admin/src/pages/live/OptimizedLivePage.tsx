@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { OptimizedLiveInterface } from '@/components/live/OptimizedLiveInterface';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,17 +42,19 @@ export const OptimizedLivePage: React.FC<OptimizedLivePageProps> = ({ isPublicVi
   const finalIsPublicView = isPublicView || urlPublicView;
   
   // Load real active competitions from API
-  const activeCompetitions: ActiveCompetition[] = [];
+  const activeCompetitions: ActiveCompetition[] = useMemo(() => [], []);
 
   // Auto-seleziona la prima competizione attiva se disponibile
   useEffect(() => {
-    if (!selectedCompetition && activeCompetitions.length > 0) {
+    if (activeCompetitions.length === 1 && !selectedCompetition) {
+      setSelectedCompetition(activeCompetitions[0]);
+    } else if (activeCompetitions.length > 1 && !selectedCompetition) {
       const activeComp = activeCompetitions.find(c => c.status === 'active');
       if (activeComp) {
         setSelectedCompetition(activeComp);
       }
     }
-  }, [activeCompetitions, selectedCompetition]);
+  }, [activeCompetitions, selectedCompetition, setSelectedCompetition]);
 
   // Vista pubblica per monitor esterni
   if (finalIsPublicView) {

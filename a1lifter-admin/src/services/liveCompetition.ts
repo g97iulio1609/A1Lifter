@@ -145,11 +145,21 @@ export const liveCompetitionService = {
     );
     
     const querySnapshot = await getDocs(q);
-    const results: any = {};
+    const results: {
+      [athleteId: string]: {
+        squat: [AttemptResult, AttemptResult, AttemptResult];
+        bench: [AttemptResult, AttemptResult, AttemptResult];
+        deadlift: [AttemptResult, AttemptResult, AttemptResult];
+      };
+    } = {};
     
     querySnapshot.docs.forEach(doc => {
       const data = doc.data();
-      const { athleteId, discipline, attempt } = data;
+      const { athleteId, discipline, attempt } = data as {
+        athleteId: string;
+        discipline: 'squat' | 'bench' | 'deadlift';
+        attempt: number;
+      };
       
       if (!results[athleteId]) {
         results[athleteId] = {

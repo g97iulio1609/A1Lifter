@@ -5,14 +5,19 @@ import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBc3t_1R8xqdCDWrG0v9bUov2CSLgYQBq0",
-  authDomain: "a1lifter.firebaseapp.com",
-  projectId: "a1lifter",
-  storageBucket: "a1lifter.firebasestorage.app",
-  messagingSenderId: "170087597581",
-  appId: "1:170087597581:web:4f5751fc2a3b7b86ccb744",
-  measurementId: "G-6X66YYBF0R"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+// Validate required environment variables
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  throw new Error('Firebase configuration is missing required environment variables');
+}
 
 const app = initializeApp(firebaseConfig);
 

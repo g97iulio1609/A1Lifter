@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
+import type { Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { 
@@ -35,6 +36,17 @@ import { DisciplineSelector } from './DisciplineSelector';
 import { useInitializeDefaultDisciplines } from '@/hooks/useDisciplines';
 import type { Competition, CustomDiscipline } from '@/types';
 
+// Added helper type to avoid any
+type CompetitionWithExtras = Competition & {
+  endDate?: string | Date;
+  venue?: string;
+  registrationDeadline?: string | Date;
+  entryFee?: number;
+  selectedDisciplines?: CustomDiscipline[];
+  disciplineOrder?: string[];
+  rules?: Competition['rules'] & { weighInTime?: string; equipmentCheck?: boolean };
+};
+
 const categorySchema = z.object({
   id: z.string().min(1, 'ID categoria richiesto'),
   name: z.string().min(1, 'Nome categoria richiesto'),
@@ -63,7 +75,7 @@ const competitionSchema = z.object({
     weighInTime: z.string().optional(),
     equipmentCheck: z.boolean().default(false),
   }),
-  selectedDisciplines: z.array(z.any()).optional(),
+  selectedDisciplines: z.array(z.unknown()).optional(),
   disciplineOrder: z.array(z.string()).optional(),
 });
 
@@ -114,7 +126,7 @@ const competitionTemplates = {
   }
 };
 
-const TABS: { id: 'general' | 'disciplines' | 'categories' | 'rules'; title: string; description: string; icon: any; color: string }[] = [
+const TABS: { id: 'general' | 'disciplines' | 'categories' | 'rules'; title: string; description: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; color: string }[] = [
   { 
     id: 'general', 
     title: 'Informazioni Generali', 
@@ -151,6 +163,8 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
   onCancel,
   isLoading = false
 }) => {
+  // usiamo un wrapper tipizzato per accedere a proprietà opzionali non presenti nel tipo Competition
+  const compAny = competition as Partial<CompetitionWithExtras> | undefined;
   const [selectedDisciplines, setSelectedDisciplines] = useState<CustomDiscipline[]>([]);
   const [disciplineOrder, setDisciplineOrder] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('general');
@@ -165,27 +179,27 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
     watch,
     control
   } = useForm<CompetitionFormData>({
-    resolver: zodResolver(competitionSchema) as any,
+    resolver: zodResolver(competitionSchema) as unknown as Resolver<CompetitionFormData>,
     mode: 'onChange',
     defaultValues: {
       name: competition?.name || '',
       description: competition?.description || '',
-      date: competition?.date ? competition.date.toISOString().split('T')[0] : '',
-      endDate: (competition as any)?.endDate || '',
+      date: competition?.date ? new Date(competition.date).toISOString().split('T')[0] : '',
+      endDate: compAny?.endDate ? new Date(compAny.endDate).toISOString().split('T')[0] : '',
       location: competition?.location || '',
-      venue: (competition as any)?.venue || '',
-      type: competition?.type as any,
+      venue: compAny?.venue || '',
+      type: competition?.type ?? undefined,
       status: competition?.status || 'draft',
-      maxParticipants: (competition as any)?.maxParticipants,
-      registrationDeadline: (competition as any)?.registrationDeadline ? new Date((competition as any).registrationDeadline).toISOString().slice(0, 16) : '',
-      entryFee: (competition as any)?.entryFee,
+      maxParticipants: competition?.maxParticipants,
+      registrationDeadline: compAny?.registrationDeadline ? new Date(compAny.registrationDeadline).toISOString().slice(0, 16) : '',
+      entryFee: compAny?.entryFee,
       categories: competition?.categories || [],
       rules: {
         attempts: competition?.rules?.attempts || 3,
         disciplines: competition?.rules?.disciplines || [],
-        scoringSystem: competition?.rules?.scoringSystem as any,
-        weighInTime: (competition?.rules as any)?.weighInTime || '',
-        equipmentCheck: (competition?.rules as any)?.equipmentCheck || false,
+        scoringSystem: competition?.rules?.scoringSystem ?? 'ipf',
+        weighInTime: compAny?.rules?.weighInTime || '',
+        equipmentCheck: compAny?.rules?.equipmentCheck || false,
       },
     }
   });
@@ -218,16 +232,17 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
       try {
         await initializeMutation.mutateAsync();
       } catch (error) {
+        // preserve the error logging but avoid noisy console usage in non-dev envs
         console.error('Error initializing default disciplines:', error);
       }
     };
     initializeDefaults();
-  }, []);
+  }, [initializeMutation]);
 
   // Carica dati competizione esistente
   useEffect(() => {
     if (competition) {
-      const comp: any = competition;
+      const comp = competition as Partial<CompetitionWithExtras>;
       if (Array.isArray(comp.selectedDisciplines)) {
         setSelectedDisciplines(comp.selectedDisciplines as CustomDiscipline[]);
       }
@@ -403,7 +418,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
               </TabsList>
             </div>
 
-            <form onSubmit={handleSubmit(onValidSubmit as any)} className="p-6">
+            <form onSubmit={handleSubmit(onValidSubmit)} className="p-6">
               {/* Tab 1: Informazioni Generali */}
               <TabsContent value="general" className="space-y-6 mt-0">
                 <div className="space-y-4">
@@ -427,7 +442,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
 
                       <div className="space-y-2">
                         <Label htmlFor="type">Tipo Competizione *</Label>
-                        <Select value={typeValue} onValueChange={(value) => setValue('type', value as any, { shouldDirty: true })}>
+                        <Select value={typeValue} onValueChange={(value) => setValue('type', value as CompetitionFormData['type'], { shouldDirty: true })}>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleziona tipo" />
                           </SelectTrigger>
@@ -540,7 +555,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                               <Settings className="h-4 w-4" />
                               Stato
                             </Label>
-                            <Select value={statusValue} onValueChange={(value) => setValue('status', value as any, { shouldDirty: true })}>
+                            <Select value={statusValue} onValueChange={(value) => setValue('status', value as CompetitionFormData['status'], { shouldDirty: true })}>
                               <SelectTrigger className="transition-all duration-200 focus:border-blue-500">
                                 <SelectValue placeholder="Seleziona stato" />
                               </SelectTrigger>
@@ -587,7 +602,15 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                           onDisciplinesChange={setSelectedDisciplines}
                           disciplineOrder={disciplineOrder}
                           onOrderChange={setDisciplineOrder}
-                          competitionType={competitionType}
+                          competitionType={
+                            (competitionType as
+                              | 'powerlifting'
+                              | 'strongman'
+                              | 'crossfit'
+                              | 'weightlifting'
+                              | 'streetlifting'
+                              | undefined) ?? 'powerlifting'
+                          }
                         />
 
                         {selectedDisciplines.length === 0 && (
@@ -767,7 +790,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                         {errors.categories && (
                           <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
                             <AlertCircle className="h-4 w-4" />
-                            {errors.categories.message || 'Aggiungi almeno una categoria'}
+                            {'Aggiungi almeno una categoria'}
                           </div>
                         )}
                       </div>
@@ -815,7 +838,7 @@ export const CompetitionForm: React.FC<CompetitionFormProps> = ({
                               <Trophy className="h-4 w-4" />
                               Sistema Punteggio *
                             </Label>
-                            <Select value={scoringValue} onValueChange={(value) => setValue('rules.scoringSystem', value as any, { shouldDirty: true })}>
+                            <Select value={scoringValue} onValueChange={(value) => setValue('rules.scoringSystem', value as CompetitionFormData['rules']['scoringSystem'], { shouldDirty: true })}>
                               <SelectTrigger className={`transition-all duration-200 ${
                                 errors.rules?.scoringSystem ? 'border-red-500 focus:border-red-500 bg-red-50 dark:bg-red-900/20' : 'focus:border-blue-500'
                               }`}>

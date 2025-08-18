@@ -7,7 +7,25 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "npm run lint && npm run build",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug",
+    "test:all": "npm run test:run && npm run e2e",
+    "lhci:mobile": "lhci autorun --config=mobile",
+    "lhci:desktop": "lhci autorun",
+    "lhci:collect": "lhci collect",
+    "lhci:assert": "lhci assert",
+    "lhci:upload": "lhci upload",
+    "performance:test": "npm run build && npm run lhci:desktop && npm run lhci:mobile",
+    "performance:ci": "npm run build && lhci autorun --upload.target=temporary-public-storage"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -56,8 +74,10 @@
     "globals": "^16.3.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
+    "terser": "^5.43.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vite-plugin-compression": "^0.5.1"
   }
 }

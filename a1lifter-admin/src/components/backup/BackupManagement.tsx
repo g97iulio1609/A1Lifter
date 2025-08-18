@@ -189,7 +189,12 @@ const BackupManagement: React.FC<BackupManagementProps> = () => {
   const [autoBackupInterval, setAutoBackupInterval] = useState(24); // hours
   const [selectedBackup, setSelectedBackup] = useState<BackupData | null>(null);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [backupStats, setBackupStats] = useState<any>(null);
+  const [backupStats, setBackupStats] = useState<{
+    totalBackups: number;
+    totalSize: string;
+    lastBackup: Date;
+    autoBackupStatus: 'active' | 'inactive';
+  } | null>(null);
 
   useEffect(() => {
     loadBackups();
@@ -212,7 +217,12 @@ const BackupManagement: React.FC<BackupManagementProps> = () => {
   const loadBackupStats = async () => {
     try {
       // Mock stats - in real implementation, this would come from the service
-      const stats = {
+      const stats: {
+        totalBackups: number;
+        totalSize: string;
+        lastBackup: Date;
+        autoBackupStatus: 'active' | 'inactive';
+      } = {
         totalBackups: 15,
         totalSize: '2.3 GB',
         lastBackup: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago

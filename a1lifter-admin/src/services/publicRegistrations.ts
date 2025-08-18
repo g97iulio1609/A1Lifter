@@ -57,9 +57,9 @@ export const getPublicCompetitions = async (): Promise<PublicCompetitionExtended
         orderBy('date', 'asc')
       );
       snapshot = await getDocs(q);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Fallback senza orderBy se l'indice composito non esiste
-      if (error.code === 'failed-precondition') {
+      if ((error as { code?: string }).code === 'failed-precondition') {
         console.warn('Indice composito mancante per competizioni pubbliche, utilizzo fallback senza orderBy');
         const qFallback = query(
           competitionsRef,
@@ -76,13 +76,13 @@ export const getPublicCompetitions = async (): Promise<PublicCompetitionExtended
       const competition = { id: docSnapshot.id, ...docSnapshot.data() } as Competition;
       
       // Assicura che la data sia un oggetto Date (Firestore Timestamp -> Date)
-      const rawDate: any = (competition as any).date;
+      const rawDate: unknown = (competition as Record<string, unknown>).date;
       const competitionDate: Date =
         rawDate instanceof Date
           ? rawDate
-          : (typeof rawDate?.toDate === 'function'
+          : (rawDate && typeof rawDate === 'object' && 'toDate' in rawDate && typeof rawDate.toDate === 'function'
               ? rawDate.toDate()
-              : new Date(rawDate));
+              : new Date());
       
       // Conta le iscrizioni attuali
       const registrationsRef = collection(db, 'registrations');
@@ -131,13 +131,13 @@ export const getPublicCompetition = async (competitionId: string): Promise<Publi
     const competition = { id: competitionSnapshot.id, ...competitionSnapshot.data() } as Competition;
     
     // Assicura che la data sia un oggetto Date (Firestore Timestamp -> Date)
-    const rawDate: any = (competition as any).date;
+    const rawDate: unknown = (competition as Record<string, unknown>).date;
     const competitionDate: Date =
       rawDate instanceof Date
         ? rawDate
-        : (typeof rawDate?.toDate === 'function'
+        : (rawDate && typeof rawDate === 'object' && 'toDate' in rawDate && typeof rawDate.toDate === 'function'
             ? rawDate.toDate()
-            : new Date(rawDate));
+            : new Date());
     
     // Conta le iscrizioni attuali
     const registrationsRef = collection(db, 'registrations');
@@ -233,7 +233,9 @@ export const registerAthleteToCompetition = async (
       registeredAt: new Date(),
       status: 'pending',
       paymentStatus: 'unpaid',
-      notes: registrationData.notes || ''
+      notes: registrationData.notes || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     
     batch.set(newRegistrationRef, registrationDocData);

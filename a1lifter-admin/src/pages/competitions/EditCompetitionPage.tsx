@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { CompetitionForm } from '@/components/competitions/CompetitionForm';
+import type { CategoryConfig, CompetitionRules as DomainCompetitionRules } from '@/types';
 import { useCompetition, useUpdateCompetition, useDeleteCompetition } from '@/hooks/useCompetitions';
 import { toast } from 'sonner';
 
@@ -16,7 +17,7 @@ const EditCompetitionPage: React.FC = () => {
   const updateMutation = useUpdateCompetition();
   const deleteMutation = useDeleteCompetition();
 
-  const handleUpdateCompetition = async (data: any) => {
+  const handleUpdateCompetition = async (data: { name: string; type: 'powerlifting' | 'strongman' | 'crossfit' | 'weightlifting' | 'streetlifting'; status: string; location: string; date: string; categories?: CategoryConfig[]; rules?: DomainCompetitionRules; registrationDeadline?: string; [key: string]: unknown }) => {
     if (!id) return;
     
     try {
@@ -24,12 +25,20 @@ const EditCompetitionPage: React.FC = () => {
         id,
         data: {
           ...data,
+          status: data.status as 'draft' | 'active' | 'in_progress' | 'completed',
           date: new Date(data.date),
+          categories: (data.categories as CategoryConfig[]) || [],
+          rules: (data.rules as DomainCompetitionRules) || {
+            attempts: 3,
+            disciplines: [],
+            scoringSystem: 'ipf'
+          },
+          registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : new Date(data.date),
         },
       });
       toast.success('Competizione aggiornata con successo');
       navigate('/competitions');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'aggiornamento della competizione');
     }
   };
@@ -42,7 +51,7 @@ const EditCompetitionPage: React.FC = () => {
         await deleteMutation.mutateAsync(id);
         toast.success('Competizione eliminata con successo');
         navigate('/competitions');
-      } catch (error) {
+      } catch {
         toast.error('Errore durante l\'eliminazione della competizione');
       }
     }
@@ -179,13 +188,13 @@ const EditCompetitionPage: React.FC = () => {
                     <div>
                       <p className="text-sm font-medium">Data creazione</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(competition.createdAt || '').toLocaleDateString('it-IT')}
+                        {(competition.createdAt instanceof Date ? competition.createdAt : new Date()).toLocaleDateString('it-IT')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium">Ultima modifica</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(competition.updatedAt || '').toLocaleDateString('it-IT')}
+                        {new Date(competition.updatedAt instanceof Date ? competition.updatedAt : new Date()).toLocaleDateString('it-IT')}
                       </p>
                     </div>
                     <div>

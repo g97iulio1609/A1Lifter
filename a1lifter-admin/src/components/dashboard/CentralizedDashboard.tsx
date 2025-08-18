@@ -29,7 +29,7 @@ import { useAthletes } from '@/hooks/useAthletes';
 interface QuickAction {
   title: string;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   href: string;
   color: string;
   disabled?: boolean;
@@ -56,7 +56,7 @@ export const CentralizedDashboard: React.FC = () => {
 
   useEffect(() => {
     if (!competitionsLoading && !athletesLoading) {
-      const activeComps = competitions?.filter((c: any) => c.status === 'active').length || 0;
+      const activeComps = competitions?.filter((c) => c.status === 'active').length || 0;
       setStats({
         totalAthletes: athletes?.length || 0,
         activeCompetitions: activeComps,
@@ -99,8 +99,8 @@ export const CentralizedDashboard: React.FC = () => {
   ];
 
   const recentCompetitions = competitions?.slice(0, 3) || [];
-  const upcomingCompetitions = competitions?.filter((c: any) => 
-    new Date(c.startDate) > new Date() && c.status === 'scheduled'
+  const upcomingCompetitions = competitions?.filter((c) => 
+    c.date > new Date() && c.status !== 'completed'
   ).slice(0, 3) || [];
 
   const handleQuickAction = (href: string) => {
@@ -257,7 +257,7 @@ export const CentralizedDashboard: React.FC = () => {
           <CardContent>
             {recentCompetitions.length > 0 ? (
               <div className="space-y-3">
-                {recentCompetitions.map((competition: any) => (
+    {recentCompetitions.map((competition) => (
                   <div 
                     key={competition.id} 
                     className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
@@ -266,7 +266,7 @@ export const CentralizedDashboard: React.FC = () => {
                     <div>
                       <p className="font-medium">{competition.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(competition.startDate).toLocaleDateString('it-IT')}
+      {new Date(competition.date).toLocaleDateString('it-IT')}
                       </p>
                     </div>
                     <Badge variant={competition.status === 'active' ? 'default' : 'secondary'}>
@@ -304,9 +304,9 @@ export const CentralizedDashboard: React.FC = () => {
           <CardContent>
             {upcomingCompetitions.length > 0 ? (
               <div className="space-y-3">
-                {upcomingCompetitions.map((competition: any) => {
+        {upcomingCompetitions.map((competition) => {
                   const daysUntil = Math.ceil(
-                    (new Date(competition.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          (new Date(competition.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
                   );
                   return (
                     <div 
@@ -317,7 +317,7 @@ export const CentralizedDashboard: React.FC = () => {
                       <div>
                         <p className="font-medium">{competition.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(competition.startDate).toLocaleDateString('it-IT')}
+              {new Date(competition.date).toLocaleDateString('it-IT')}
                         </p>
                       </div>
                       <Badge variant="outline">

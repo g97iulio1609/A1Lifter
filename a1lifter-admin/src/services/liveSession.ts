@@ -256,7 +256,7 @@ export const liveSessionService = {
     const existing = JSON.parse(localStorage.getItem(key) || '{}');
     
     if (existing[liftId]) {
-      existing[liftId] = existing[liftId].filter((v: any) => v.judgeId !== judgeId);
+      existing[liftId] = existing[liftId].filter((v: { judgeId: string }) => v.judgeId !== judgeId);
       if (existing[liftId].length === 0) {
         delete existing[liftId];
       }
@@ -271,15 +271,15 @@ export const liveSessionService = {
     const pendingVotes = JSON.parse(localStorage.getItem(key) || '{}');
     
     for (const [liftId, votes] of Object.entries(pendingVotes)) {
-      for (const vote of votes as any[]) {
+      for (const vote of votes as Array<{ id?: string; judgeId: string; position: string; vote: string; synced?: boolean; competitionId?: string; athleteId?: string; discipline?: string; attemptNumber?: number }>) {
         if (!vote.synced) {
           try {
             await this.submitJudgeVote(sessionId, liftId, {
               id: vote.id || '',
               judgeId: vote.judgeId,
-              position: vote.position,
-              vote: vote.vote,
-              decision: vote.vote,
+              position: vote.position as unknown as 1 | 2 | 3,
+              vote: vote.vote as 'valid' | 'invalid',
+              decision: vote.vote as 'valid' | 'invalid',
               competitionId: vote.competitionId || '',
               athleteId: vote.athleteId || '',
               discipline: vote.discipline || '',
@@ -294,7 +294,7 @@ export const liveSessionService = {
   },
 
   // Ottieni voti pendenti per debug
-  getPendingVotes(sessionId: string): any {
+  getPendingVotes(sessionId: string): Record<string, unknown> {
     const key = `liveSession_${sessionId}_votes`;
     return JSON.parse(localStorage.getItem(key) || '{}');
   },
@@ -311,7 +311,7 @@ export const liveSessionService = {
         let hasRecentVotes = false;
         
         for (const votes of Object.values(data)) {
-          for (const vote of votes as any[]) {
+          for (const vote of votes as Array<{ timestamp: string }>) {
             if (new Date(vote.timestamp) > oneWeekAgo) {
               hasRecentVotes = true;
               break;
@@ -323,7 +323,7 @@ export const liveSessionService = {
         if (!hasRecentVotes) {
           localStorage.removeItem(key);
         }
-      } catch (error) {
+      } catch {
         // Rimuovi chiave corrotta
         localStorage.removeItem(key);
       }

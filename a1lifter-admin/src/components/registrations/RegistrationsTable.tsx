@@ -104,7 +104,7 @@ export const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
 
       toast.success(successMessage);
       setConfirmAction(null);
-    } catch (error) {
+  } catch {
       toast.error('Errore durante l\'aggiornamento');
     }
   };

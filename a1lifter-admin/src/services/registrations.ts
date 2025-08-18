@@ -20,8 +20,84 @@ const ATHLETES_COLLECTION = 'athletes';
 const COMPETITIONS_COLLECTION = 'competitions';
 
 export const registrationsService = {
+  // Pulisce le iscrizioni orfane (che fanno riferimento a atleti o competizioni inesistenti)
+  async cleanOrphanedRegistrations(): Promise<{ cleaned: number; errors: string[] }> {
+    console.log('Starting cleanup of orphaned registrations...');
+    
+    const errors: string[] = [];
+    let cleaned = 0;
+    
+    try {
+      // Ottieni tutte le registrazioni
+      const registrationsSnapshot = await getDocs(collection(db, REGISTRATIONS_COLLECTION));
+      console.log(`Found ${registrationsSnapshot.docs.length} registrations to check`);
+      
+      for (const regDoc of registrationsSnapshot.docs) {
+        const regData = regDoc.data();
+        let shouldDelete = false;
+        
+        // Verifica se l'atleta esiste
+        try {
+          const athleteDoc = await getDoc(doc(db, ATHLETES_COLLECTION, regData.athleteId));
+          if (!athleteDoc.exists()) {
+            console.log(`Orphaned registration ${regDoc.id}: athlete ${regData.athleteId} not found`);
+            shouldDelete = true;
+          }
+        } catch (error) {
+          errors.push(`Error checking athlete ${regData.athleteId}: ${error}`);
+          shouldDelete = true;
+        }
+        
+        // Verifica se la competizione esiste
+        try {
+          const competitionDoc = await getDoc(doc(db, COMPETITIONS_COLLECTION, regData.competitionId));
+          if (!competitionDoc.exists()) {
+            console.log(`Orphaned registration ${regDoc.id}: competition ${regData.competitionId} not found`);
+            shouldDelete = true;
+          }
+        } catch (error) {
+          errors.push(`Error checking competition ${regData.competitionId}: ${error}`);
+          shouldDelete = true;
+        }
+        
+        // Elimina la registrazione orfana
+        if (shouldDelete) {
+          try {
+            await deleteDoc(regDoc.ref);
+            
+            // Elimina anche i dettagli della registrazione
+            const detailsQuery = query(
+              collection(db, REGISTRATION_DETAILS_COLLECTION),
+              where('registrationId', '==', regDoc.id)
+            );
+            const detailsSnapshot = await getDocs(detailsQuery);
+            
+            for (const detailDoc of detailsSnapshot.docs) {
+              await deleteDoc(detailDoc.ref);
+            }
+            
+            cleaned++;
+            console.log(`Deleted orphaned registration ${regDoc.id}`);
+          } catch (error) {
+            errors.push(`Error deleting registration ${regDoc.id}: ${error}`);
+          }
+        }
+      }
+      
+      console.log(`Cleanup completed. Cleaned ${cleaned} orphaned registrations`);
+      return { cleaned, errors };
+      
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      errors.push(`General cleanup error: ${error}`);
+      return { cleaned, errors };
+    }
+  },
+
   // Ottieni registrazioni con filtri e dati completi
   async getRegistrations(filters: RegistrationsFilters = {}): Promise<RegistrationWithDetails[]> {
+    console.log('Getting registrations with filters:', filters);
+    
     const constraints: QueryConstraint[] = [];
     
     // Filtri
@@ -42,10 +118,17 @@ export const registrationsService = {
     try {
       const q = query(collection(db, REGISTRATIONS_COLLECTION), ...constraints);
       querySnapshot = await getDocs(q);
-    } catch (error: any) {
+      console.log(`Found ${querySnapshot.docs.length} registrations`);
+    } catch (error: unknown) {
       console.error('Error fetching registrations:', error);
       throw error;
     }
+    
+    // Verifica se ci sono atleti e competizioni nel database
+    const athletesSnapshot = await getDocs(collection(db, ATHLETES_COLLECTION));
+    const competitionsSnapshot = await getDocs(collection(db, COMPETITIONS_COLLECTION));
+    console.log(`Total athletes in database: ${athletesSnapshot.docs.length}`);
+    console.log(`Total competitions in database: ${competitionsSnapshot.docs.length}`);
     
     const registrations: RegistrationWithDetails[] = [];
     
@@ -70,17 +153,16 @@ export const registrationsService = {
       const competitionDoc = await getDoc(doc(db, COMPETITIONS_COLLECTION, registration.competitionId));
       const competitionData = competitionDoc.exists() ? competitionDoc.data() : null;
 
-      // Ottieni dettagli registrazione
-      const detailsQuery = query(
-        collection(db, REGISTRATION_DETAILS_COLLECTION),
-        where('registrationId', '==', registration.id)
-      );
-      const detailsSnapshot = await getDocs(detailsQuery);
-      const detailsData = detailsSnapshot.docs[0]?.data();
-
+      // Ottieni dettagli registrazione solo se atleta e competizione esistono
       if (athleteData && competitionData) {
+        const detailsQuery = query(
+          collection(db, REGISTRATION_DETAILS_COLLECTION),
+          where('registrationId', '==', registration.id)
+        );
+        const detailsSnapshot = await getDocs(detailsQuery);
+        const detailsData = detailsSnapshot.docs[0]?.data();
         // Trova categoria
-        const category = competitionData.categories?.find((c: any) => c.id === registration.categoryId);
+        const category = competitionData.categories?.find((c: { id: string; name: string }) => c.id === registration.categoryId);
         
         const enrichedRegistration: RegistrationWithDetails = {
           ...registration,
@@ -92,6 +174,8 @@ export const registrationsService = {
           categoryName: category?.name || 'Categoria non trovata',
           emergencyContact: detailsData?.emergencyContact,
           medicalInfo: detailsData?.medicalInfo,
+          createdAt: registrationData.createdAt?.toDate() || new Date(),
+          updatedAt: registrationData.updatedAt?.toDate() || new Date(),
         };
 
         // Applica filtro di ricerca lato client
@@ -106,10 +190,9 @@ export const registrationsService = {
         } else {
           registrations.push(enrichedRegistration);
         }
-      } else {
-        // Skip registrations with missing athlete or competition data
-        console.warn('Skipping registration due to missing athlete or competition data:', registration.id);
       }
+      // Iscrizioni orfane vengono silenziosamente ignorate
+      // Usa cleanOrphanedRegistrations() per rimuoverle definitivamente
     }
     
     // Ordina lato client per garantire ordine corretto
@@ -157,7 +240,7 @@ export const registrationsService = {
     }
 
     // Trova categoria
-    const category = competitionData.categories?.find((c: any) => c.id === registration.categoryId);
+    const category = competitionData.categories?.find((c: { id: string; name: string }) => c.id === registration.categoryId);
 
     return {
       ...registration,
@@ -169,6 +252,8 @@ export const registrationsService = {
       categoryName: category?.name || 'Categoria non trovata',
       emergencyContact: detailsData?.emergencyContact,
       medicalInfo: detailsData?.medicalInfo,
+      createdAt: registrationData.createdAt?.toDate() || new Date(),
+      updatedAt: registrationData.updatedAt?.toDate() || new Date(),
     };
   },
 
@@ -207,12 +292,33 @@ export const registrationsService = {
     paymentStatus: 'unpaid' | 'paid' | 'refunded';
     notes?: string;
   }): Promise<string> {
+    console.log('Creating registration with data:', data);
+    
+    // Verifica che l'atleta esista
+    const athleteDoc = await getDoc(doc(db, ATHLETES_COLLECTION, data.athleteId));
+    if (!athleteDoc.exists()) {
+      console.error(`Athlete with ID ${data.athleteId} does not exist`);
+      throw new Error(`Atleta con ID ${data.athleteId} non trovato`);
+    }
+    
+    // Verifica che la competizione esista
+    const competitionDoc = await getDoc(doc(db, COMPETITIONS_COLLECTION, data.competitionId));
+    if (!competitionDoc.exists()) {
+      console.error(`Competition with ID ${data.competitionId} does not exist`);
+      throw new Error(`Competizione con ID ${data.competitionId} non trovata`);
+    }
+    
+    console.log('Athlete and competition verified, creating registration...');
+    
     const registrationsColRef = collection(db, REGISTRATIONS_COLLECTION);
     const docRef = await addDoc(registrationsColRef, {
       ...data,
       registeredAt: new Date(),
+      createdAt: new Date(),
       updatedAt: new Date(),
     });
+    
+    console.log('Registration created with ID:', docRef.id);
     return docRef.id;
   },
 
@@ -264,4 +370,4 @@ export const registrationsService = {
 
     return stats;
   },
-}; 
+};

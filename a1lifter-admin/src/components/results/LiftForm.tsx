@@ -54,17 +54,17 @@ export const LiftForm: React.FC<LiftFormProps> = ({
   const isValid = watch('valid');
 
   // Calcola il prossimo numero di tentativo per la disciplina selezionata
-  const getNextAttemptNumber = (discipline: string) => {
+  const getNextAttemptNumber = React.useCallback((discipline: string) => {
     const disciplineLifts = result.lifts.filter(lift => lift.discipline === discipline);
     return disciplineLifts.length + 1;
-  };
+  }, [result.lifts]);
 
   // Aggiorna automaticamente il numero di tentativo quando cambia la disciplina
   React.useEffect(() => {
     if (selectedDiscipline) {
       setValue('attempt', getNextAttemptNumber(selectedDiscipline));
     }
-  }, [selectedDiscipline, setValue]);
+  }, [selectedDiscipline, setValue, getNextAttemptNumber]);
 
   const handleFormSubmit = (data: LiftFormData) => {
     onSubmit(data);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Trophy, Medal, Star, Plus, Search, Download, User, Target, Award, CheckCircle, AlertTriangle } from 'lucide-react';
 import { recordService } from '@/services/records';
 
@@ -191,7 +191,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
             </label>
             <select
               value={formData.recordType}
-              onChange={(e) => setFormData({ ...formData, recordType: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, recordType: e.target.value as 'competition' | 'regional' | 'national' | 'world' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="competition">Competizione</option>
@@ -454,29 +454,26 @@ const RecordManagement: React.FC<RecordManagementProps> = ({
   const [showCreateRecordModal, setShowCreateRecordModal] = useState(false);
   const [showQualificationModal, setShowQualificationModal] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [competitionId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      // Load records
       const recordData = await recordService.getRecordsBrokenInCompetition(competitionId);
       setRecords(recordData);
-      
-      // Load qualifications
       const qualificationData = await recordService.getQualificationsByCompetition(competitionId);
       setQualifications(qualificationData);
-      
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Errore durante il caricamento dei dati');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [competitionId]);
+
+  useEffect(() => {
+    loadData();
+  }, [competitionId, loadData]);
+
+  // loadData memoized sopra
 
   const handleExportRecords = async () => {
     try {
@@ -646,7 +643,7 @@ const RecordManagement: React.FC<RecordManagementProps> = ({
             <div className="sm:w-48">
               <select
                 value={recordTypeFilter}
-                onChange={(e) => setRecordTypeFilter(e.target.value as any)}
+                onChange={(e) => setRecordTypeFilter(e.target.value as 'all' | 'competition' | 'regional' | 'national' | 'world')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">Tutti i tipi</option>

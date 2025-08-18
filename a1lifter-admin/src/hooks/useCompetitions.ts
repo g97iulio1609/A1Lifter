@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { competitionsService } from '@/services/competitions';
-import type { Competition, Registration } from '@/types';
+import type { Competition, CompetitionWithStats, Registration } from '@/types';
 
 export const COMPETITIONS_QUERY_KEY = 'competitions';
 export const REGISTRATIONS_QUERY_KEY = 'registrations';
@@ -11,7 +11,7 @@ export const useCompetitions = (filters?: {
   type?: 'powerlifting' | 'strongman';
   upcoming?: boolean;
 }) => {
-  return useQuery({
+  return useQuery<CompetitionWithStats[]>({
     queryKey: [COMPETITIONS_QUERY_KEY, filters],
     queryFn: () => competitionsService.getCompetitions(filters),
     staleTime: 1000 * 60 * 5, // 5 minuti
@@ -20,7 +20,7 @@ export const useCompetitions = (filters?: {
 
 // Hook per ottenere una singola competizione
 export const useCompetition = (id: string) => {
-  return useQuery({
+  return useQuery<CompetitionWithStats | null>({
     queryKey: [COMPETITIONS_QUERY_KEY, id],
     queryFn: () => competitionsService.getCompetition(id),
     enabled: !!id,
@@ -38,7 +38,7 @@ export const useCompetitionsStats = () => {
 
 // Hook per registrazioni di una competizione
 export const useRegistrations = (competitionId: string) => {
-  return useQuery({
+  return useQuery<Registration[]>({
     queryKey: [REGISTRATIONS_QUERY_KEY, competitionId],
     queryFn: () => competitionsService.getRegistrations(competitionId),
     enabled: !!competitionId,

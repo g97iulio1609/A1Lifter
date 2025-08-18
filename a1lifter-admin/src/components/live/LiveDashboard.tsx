@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, RotateCcw, Users, Trophy, Clock, Wifi, WifiOff, Volume2, VolumeX, Settings, Eye, EyeOff, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { timerService } from '@/services/timer';
 import { judgeService } from '@/services/judges';
 import { liveSessionService } from '@/services/liveSession';
 import { notificationService } from '@/services/notifications';
-import type { CompetitionTimer, JudgeVote, LiveCompetitionSession, SystemNotification } from '@/types';
+import type { CompetitionTimer, JudgeVote, LiveCompetitionSession, SystemNotification, JudgeAssignment } from '@/types';
 import { toast } from 'sonner';
+
+type AudioCtor = typeof AudioContext;
+const createAudioContext = (): AudioContext | null => {
+  const w = window as unknown as { AudioContext?: AudioCtor; webkitAudioContext?: AudioCtor };
+  const Ctor = w.AudioContext ?? w.webkitAudioContext;
+  return Ctor ? new Ctor() : null;
+};
 
 interface LiveDashboardProps {
   competitionId: string;
@@ -30,7 +37,8 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
   const [timer, setTimer] = useState<CompetitionTimer | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [currentAttempt, setCurrentAttempt] = useState<CurrentAttempt | null>(null);
-  const [judges, setJudges] = useState<any[]>([]);
+  type JudgeAssignmentWithName = JudgeAssignment & { judgeName?: string };
+  const [judges, setJudges] = useState<JudgeAssignmentWithName[]>([]);
   const [votes, setVotes] = useState<JudgeVote[]>([]);
   const [, setLiveSession] = useState<LiveCompetitionSession | null>(null);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
@@ -47,12 +55,136 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    initializeDashboard();
-  }, [competitionId, sessionId]);
+  
+
+  const hasToDate = (value: unknown): value is { toDate: () => Date } => {
+    if (typeof value !== 'object' || value === null) return false;
+    const rec = value as Record<string, unknown>;
+    return typeof rec.toDate === 'function';
+    };
+
+  const formatNotificationTime = (
+    createdAt: SystemNotification['createdAt']
+  ): string => {
+    if (createdAt instanceof Date) return createdAt.toLocaleTimeString();
+    if (hasToDate(createdAt)) return createdAt.toDate().toLocaleTimeString();
+    return '';
+  };
+
+  const playTimeAlert = useCallback((seconds: number) => {
+    const audioContext = createAudioContext();
+    if (!audioContext) return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = seconds <= 10 ? 800 : 400;
+    gainNode.gain.value = 0.3;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.2);
+  }, []);
+
+  const playRecordAlert = useCallback(() => {
+    const audioContext = createAudioContext();
+    if (!audioContext) return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = 1000;
+    gainNode.gain.value = 0.5;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }, []);
+
+  const playSuccessAlert = useCallback(() => {
+    const audioContext = createAudioContext();
+    if (!audioContext) return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = 600;
+    gainNode.gain.value = 0.3;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.3);
+  }, []);
+
+  const playFailureAlert = useCallback(() => {
+    const audioContext = createAudioContext();
+    if (!audioContext) return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = 200;
+    gainNode.gain.value = 0.3;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }, []);
+
+  const loadAttemptVotes = useCallback(async (attempt: CurrentAttempt) => {
+    try {
+      const attemptVotes = await judgeService.getVotesForAttempt(
+        competitionId,
+        attempt.athleteId,
+        attempt.discipline,
+        attempt.attemptNumber
+      );
+      setVotes(attemptVotes);
+      if (attemptVotes.length === judges.length && attemptVotes.length > 0) {
+        const result = await judgeService.calculateAttemptResult(
+          competitionId,
+          attempt.athleteId,
+          attempt.discipline,
+          attempt.attemptNumber
+        );
+        setAttemptResult(result);
+      }
+    } catch (error) {
+      console.error('Error loading attempt votes:', error);
+    }
+  }, [competitionId, judges.length]);
+
+  const initializeDashboard = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const judgeAssignments = await judgeService.getJudgeAssignments(competitionId);
+      const sessionJudges = judgeAssignments
+        .filter(assignment => assignment.sessionId === sessionId)
+        .map(a => a as JudgeAssignmentWithName);
+      setJudges(sessionJudges);
+      const session = await liveSessionService.getLiveSession(sessionId);
+      setLiveSession(session);
+      if (session?.currentAttempt && session?.currentAthleteId && session?.currentDiscipline) {
+        const attemptData: CurrentAttempt = {
+          athleteId: session.currentAthleteId,
+          athleteName: '',
+          discipline: session.currentDiscipline,
+          attemptNumber: session.currentAttempt,
+          weight: 0
+        };
+        setCurrentAttempt(attemptData);
+        await loadAttemptVotes(attemptData);
+      }
+      const recentNotifications = await notificationService.getNotificationsForCompetition(
+        competitionId,
+        10
+      );
+      setNotifications(recentNotifications);
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+      toast.error('Errore durante il caricamento del dashboard');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [competitionId, sessionId, loadAttemptVotes]);
 
   useEffect(() => {
-    // Subscribe to timer updates
+    initializeDashboard();
+  }, [initializeDashboard]);
+
+  useEffect(() => {
     const unsubscribeTimer = timerService.subscribeToTimer(
       competitionId,
       (timerData) => {
@@ -61,7 +193,6 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
           const remaining = timerService.calculateRemainingTime(timerData);
           setTimeRemaining(remaining);
           
-          // Play sound alerts
           if (soundEnabled) {
             if (remaining === 30 || remaining === 10 || remaining === 5) {
               playTimeAlert(remaining);
@@ -110,95 +241,10 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
       unsubscribeSession();
       unsubscribeNotifications();
     };
-  }, [competitionId, sessionId, soundEnabled]);
+  }, [competitionId, sessionId, soundEnabled, loadAttemptVotes, playRecordAlert, playTimeAlert]);
 
-  useEffect(() => {
-    // Update timer countdown
-    const interval = setInterval(() => {
-      if (timer && timer.type === 'attempt' && timer.isActive) {
-        const remaining = timerService.calculateRemainingTime(timer);
-        setTimeRemaining(Math.max(0, remaining));
-        
-        if (remaining <= 0 && currentAttempt) {
-          // Auto-calculate result when time expires
-          calculateAttemptResult();
-        }
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [timer, currentAttempt]);
-
-  const initializeDashboard = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Load judges for this competition
-      const judgeAssignments = await judgeService.getJudgeAssignments(competitionId);
-      const sessionJudges = judgeAssignments.filter(assignment => 
-        assignment.sessionId === sessionId
-      );
-      setJudges(sessionJudges);
-      
-      // Load live session
-      const session = await liveSessionService.getLiveSession(sessionId);
-      setLiveSession(session);
-      
-      if (session?.currentAttempt && session?.currentAthleteId && session?.currentDiscipline) {
-        const attemptData: CurrentAttempt = {
-          athleteId: session.currentAthleteId,
-          athleteName: '', // TODO: Get athlete name
-          discipline: session.currentDiscipline,
-          attemptNumber: session.currentAttempt,
-          weight: 0 // TODO: Get requested weight
-        };
-        setCurrentAttempt(attemptData);
-        await loadAttemptVotes(attemptData);
-      }
-      
-      // Load recent notifications
-      const recentNotifications = await notificationService.getNotificationsForCompetition(
-        competitionId,
-        10
-      );
-      setNotifications(recentNotifications);
-      
-    } catch (error) {
-      console.error('Error initializing dashboard:', error);
-      toast.error('Errore durante il caricamento del dashboard');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadAttemptVotes = async (attempt: CurrentAttempt) => {
-    try {
-      const attemptVotes = await judgeService.getVotesForAttempt(
-        competitionId,
-        attempt.athleteId,
-        attempt.discipline,
-        attempt.attemptNumber
-      );
-      setVotes(attemptVotes);
-      
-      // Check if all judges have voted
-      if (attemptVotes.length === judges.length && attemptVotes.length > 0) {
-        const result = await judgeService.calculateAttemptResult(
-          competitionId,
-          attempt.athleteId,
-          attempt.discipline,
-          attempt.attemptNumber
-        );
-        setAttemptResult(result);
-      }
-    } catch (error) {
-      console.error('Error loading attempt votes:', error);
-    }
-  };
-
-  const calculateAttemptResult = async () => {
+  const calculateAttemptResult = useCallback(async () => {
     if (!currentAttempt) return;
-    
     try {
       const result = await judgeService.calculateAttemptResult(
         competitionId,
@@ -207,7 +253,6 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
         currentAttempt.attemptNumber
       );
       setAttemptResult(result);
-      
       if (soundEnabled) {
         if (result.isValid) {
           playSuccessAlert();
@@ -218,7 +263,21 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
     } catch (error) {
       console.error('Error calculating attempt result:', error);
     }
-  };
+  }, [competitionId, currentAttempt, soundEnabled, playSuccessAlert, playFailureAlert]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (timer && timer.type === 'attempt' && timer.isActive) {
+        const remaining = timerService.calculateRemainingTime(timer);
+        setTimeRemaining(Math.max(0, remaining));
+        if (remaining <= 0 && currentAttempt) {
+          calculateAttemptResult();
+        }
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [timer, currentAttempt, calculateAttemptResult]);
+  
 
   const handleTimerControl = async (action: 'start' | 'pause' | 'reset') => {
     if (!isAdmin || !timer) return;
@@ -242,69 +301,7 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
     }
   };
 
-  const playTimeAlert = (seconds: number) => {
-    // Simple beep sound for time alerts
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = seconds <= 10 ? 800 : 400;
-    gainNode.gain.value = 0.3;
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.2);
-  };
-
-  const playRecordAlert = () => {
-    // Different sound for record alerts
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 1000;
-    gainNode.gain.value = 0.5;
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5);
-  };
-
-  const playSuccessAlert = () => {
-    // Success sound
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 600;
-    gainNode.gain.value = 0.3;
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.3);
-  };
-
-  const playFailureAlert = () => {
-    // Failure sound
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 200;
-    gainNode.gain.value = 0.3;
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5);
-  };
+  
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -569,7 +566,7 @@ const LiveDashboard: React.FC<LiveDashboardProps> = ({
                           {notification.message}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(notification.createdAt).toLocaleTimeString()}
+                          {formatNotificationTime(notification.createdAt)}
                         </p>
                       </div>
                     </div>

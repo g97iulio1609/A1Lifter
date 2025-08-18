@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CompetitionForm } from '@/components/competitions/CompetitionForm';
+import type { CategoryConfig, CompetitionRules as DomainCompetitionRules } from '@/types';
 import { useCreateCompetition } from '@/hooks/useCompetitions';
 import { toast } from 'sonner';
 
@@ -12,15 +13,26 @@ export const CreateCompetitionPage: React.FC = () => {
   const navigate = useNavigate();
   const createMutation = useCreateCompetition();
 
-  const handleCreateCompetition = async (data: any) => {
+  type CompetitionRules = { attempts?: number; disciplines?: string[]; scoringSystem?: string } & Record<string, unknown>;
+  type CompetitionFormData = { name: string; type: 'powerlifting' | 'strongman' | 'crossfit' | 'weightlifting' | 'streetlifting'; status: string; location: string; date: string; categories?: Record<string, unknown>[]; rules?: CompetitionRules; registrationDeadline?: string; [key: string]: unknown };
+  const handleCreateCompetition = async (data: CompetitionFormData) => {
     try {
       await createMutation.mutateAsync({
         ...data,
+        status: data.status as 'draft' | 'active' | 'in_progress' | 'completed',
         date: new Date(data.date),
+  categories: (data.categories as CategoryConfig[]) || [],
+  rules: (data.rules as DomainCompetitionRules) || {
+          attempts: 3,
+          disciplines: [],
+          scoringSystem: 'ipf'
+        },
+        registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : new Date(data.date),
+        createdBy: 'current-user-id' // TODO: get from auth context
       });
       toast.success('Competizione creata con successo');
       navigate('/competitions');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante la creazione della competizione');
     }
   };

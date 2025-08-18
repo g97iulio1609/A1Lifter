@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- AuthProvider and useAuth are intentionally colocated to keep context + hook in one module; safe for Fast Refresh. */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   type User as FirebaseUser, 

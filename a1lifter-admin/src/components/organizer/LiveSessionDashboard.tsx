@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import {
   Weight
 } from 'lucide-react';
 import { useRegistrations } from '@/hooks/useCompetitions';
+import type { Registration } from '@/types';
 // Removed testDataService import - using real data only
 import { liveCompetitionService, type LiveCompetitionState, type AttemptResult } from '@/services/liveCompetition';
 
@@ -59,7 +60,11 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
   competitionId,
   competitionName
 }) => {
-  const { data: registrations = [], isLoading } = useRegistrations(competitionId);
+  const { data: registrationsData, isLoading } = useRegistrations(competitionId);
+  const registrations = React.useMemo(
+    () => (registrationsData ?? []) as Registration[],
+    [registrationsData]
+  );
   
   // Stato gara semplificato
   const [competitionState, setCompetitionState] = useState<CompetitionState>('setup');
@@ -87,19 +92,7 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Timer countdown
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning && timer > 0) {
-      interval = setInterval(() => {
-        setTimer(prev => Math.max(0, prev - 1));
-      }, 1000);
-    } else if (timer === 0) {
-      setIsTimerRunning(false);
-      handleNextAthlete();
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timer]);
+  // Timer countdown definito dopo handleNextAthlete
 
   // Carica stato gara da Firebase al mount
   useEffect(() => {
@@ -241,7 +234,7 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
   };
 
   // Genera ordine di gara dinamico basato sui tentativi ancora da completare
-  const generateLiftingOrder = () => {
+  const generateLiftingOrder = useCallback(() => {
     // Inizializza pesi di default se non esistono
     if (Object.keys(competitionSetup.athleteWeights).length === 0) {
       const defaultWeights: AthleteWeights = {};
@@ -321,7 +314,49 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
     });
 
     return pendingAttempts;
-  };
+  }, [competitionSetup.athleteWeights, athleteResults, registrations]);
+
+  // Prossimo atleta (con ordine professionale)
+  const handleNextAthlete = useCallback(() => {
+    setTimer(60);
+    setIsTimerRunning(false);
+    setCurrentVotes({ judge1: null, judge2: null, judge3: null });
+    setAttemptComplete(false);
+    
+    const liftingOrder = generateLiftingOrder();
+    const nextIndex = completedAttempts + 1;
+    
+    if (nextIndex >= liftingOrder.length) {
+      setCompetitionState('completed');
+      setCurrentAthlete(null);
+      return;
+    }
+
+    const nextLift = liftingOrder[nextIndex];
+    setCurrentAthlete({
+      id: nextLift.athleteId,
+      name: nextLift.athleteName,
+      discipline: nextLift.discipline,
+      attempt: nextLift.attempt,
+      weight: nextLift.weight
+    });
+    setCurrentWeight(nextLift.weight.toString());
+    setCompletedAttempts(nextIndex);
+  }, [completedAttempts, generateLiftingOrder]);
+
+  // Timer countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning && timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => Math.max(0, prev - 1));
+      }, 1000);
+    } else if (timer === 0) {
+      setIsTimerRunning(false);
+      handleNextAthlete();
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timer, handleNextAthlete]);
 
   // Avvia la gara (senza obbligo di setup pesi)
   const handleStartCompetition = () => {
@@ -393,11 +428,11 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
   const allJudgesVoted = currentVotes.judge1 !== null && currentVotes.judge2 !== null && currentVotes.judge3 !== null;
 
   // Calcola risultato tentativo (maggioranza)
-  const getAttemptResult = () => {
+  const getAttemptResult = useCallback(() => {
     const votes = [currentVotes.judge1, currentVotes.judge2, currentVotes.judge3];
     const validVotes = votes.filter(v => v === 'valid').length;
     return validVotes >= 2 ? 'valid' : 'invalid';
-  };
+  }, [currentVotes.judge1, currentVotes.judge2, currentVotes.judge3]);
 
   // Auto-advance quando tutti hanno votato
   useEffect(() => {
@@ -441,38 +476,11 @@ export const LiveSessionDashboard: React.FC<LiveSessionDashboardProps> = ({
       })();
       
       setTimeout(() => {
-        handleNextAthlete();
+    handleNextAthlete();
       }, 2000); // 2 secondi per vedere il risultato
     }
-  }, [allJudgesVoted, attemptComplete, currentAthlete]);
+  }, [allJudgesVoted, attemptComplete, currentAthlete, handleNextAthlete, competitionId, currentVotes, getAttemptResult]);
 
-  // Prossimo atleta (con ordine professionale)
-  const handleNextAthlete = () => {
-    setTimer(60);
-    setIsTimerRunning(false);
-    setCurrentVotes({ judge1: null, judge2: null, judge3: null });
-    setAttemptComplete(false);
-    
-    const liftingOrder = generateLiftingOrder();
-    const nextIndex = completedAttempts + 1;
-    
-    if (nextIndex >= liftingOrder.length) {
-      setCompetitionState('completed');
-      setCurrentAthlete(null);
-      return;
-    }
-
-    const nextLift = liftingOrder[nextIndex];
-    setCurrentAthlete({
-      id: nextLift.athleteId,
-      name: nextLift.athleteName,
-      discipline: nextLift.discipline,
-      attempt: nextLift.attempt,
-      weight: nextLift.weight
-    });
-    setCurrentWeight(nextLift.weight.toString());
-    setCompletedAttempts(nextIndex);
-  };
 
   // Start/stop timer
   const handleTimerToggle = () => {

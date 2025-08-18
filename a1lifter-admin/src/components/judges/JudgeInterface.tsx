@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Check, X, Clock, User, Trophy, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { judgeService } from '@/services/judges';
 import { timerService } from '@/services/timer';
@@ -37,18 +37,35 @@ const JudgeInterface: React.FC<JudgeInterfaceProps> = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [pendingVote, setPendingVote] = useState<'valid' | 'invalid' | null>(null);
 
+  const loadAttemptVotes = useCallback(async () => {
+    if (!currentAttempt) return;
+    try {
+      const votes = await judgeService.getVotesForAttempt(
+        competitionId,
+        currentAttempt.athleteId,
+        currentAttempt.discipline,
+        currentAttempt.attemptNumber
+      );
+      setVoteHistory(votes);
+      const myVote = votes.find(vote => vote.judgeId === judgeId);
+      if (myVote) {
+        setHasVoted(true);
+        setCurrentVote(myVote.decision);
+      }
+    } catch (error) {
+      console.error('Error loading attempt votes:', error);
+    }
+  }, [competitionId, currentAttempt, judgeId]);
+
   useEffect(() => {
     if (currentAttempt) {
-      // Reset vote state for new attempt
       setHasVoted(false);
       setCurrentVote(null);
       setShowConfirmation(false);
       setPendingVote(null);
-      
-      // Load existing votes for this attempt
       loadAttemptVotes();
     }
-  }, [currentAttempt]);
+  }, [currentAttempt, loadAttemptVotes]);
 
   useEffect(() => {
     // Subscribe to timer updates
@@ -80,29 +97,7 @@ const JudgeInterface: React.FC<JudgeInterfaceProps> = ({
     return () => clearInterval(interval);
   }, [timer]);
 
-  const loadAttemptVotes = async () => {
-    if (!currentAttempt) return;
-    
-    try {
-      const votes = await judgeService.getVotesForAttempt(
-        competitionId,
-        currentAttempt.athleteId,
-        currentAttempt.discipline,
-        currentAttempt.attemptNumber
-      );
-      
-      setVoteHistory(votes);
-      
-      // Check if this judge has already voted
-      const myVote = votes.find(vote => vote.judgeId === judgeId);
-      if (myVote) {
-        setHasVoted(true);
-        setCurrentVote(myVote.decision);
-      }
-    } catch (error) {
-      console.error('Error loading attempt votes:', error);
-    }
-  };
+  
 
   const handleVote = (decision: 'valid' | 'invalid') => {
     if (hasVoted) {

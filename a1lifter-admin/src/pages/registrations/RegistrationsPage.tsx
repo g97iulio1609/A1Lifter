@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { Registration } from '@/types';
-import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +20,10 @@ import {
   Download
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export const RegistrationsPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const competitionId = searchParams.get('competitionId') || undefined;
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>('');
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'confirmed' | 'cancelled' | undefined>();
@@ -34,7 +32,7 @@ export const RegistrationsPage: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const filters = {
-    competitionId,
+    competitionId: selectedCompetitionId || undefined,
     status: statusFilter,
     paymentStatus: paymentFilter,
     searchTerm: searchTerm || undefined,
@@ -44,7 +42,7 @@ export const RegistrationsPage: React.FC = () => {
   const { data: competitions = [] } = useCompetitions();
   const createMutation = useCreateRegistration();
   
-  const selectedCompetition = competitions.find(c => c.id === competitionId);
+  const selectedCompetition = competitions.find(c => c.id === selectedCompetitionId);
 
   const getStatusStats = () => {
     const pending = registrations.filter((r: Registration) => r.status === 'pending').length;
@@ -67,19 +65,19 @@ export const RegistrationsPage: React.FC = () => {
     toast.info('Funzionalità di export in sviluppo');
   };
 
-  const handleCreateRegistration = async (data: any) => {
-    if (!competitionId) {
+  const handleCreateRegistration = async (data: { athleteId: string; categoryId: string; status: 'pending' | 'confirmed' | 'cancelled'; paymentStatus: 'unpaid' | 'paid' | 'refunded'; notes?: string }) => {
+    if (!selectedCompetitionId) {
       toast.error('Seleziona prima una competizione');
       return;
     }
     try {
       await createMutation.mutateAsync({
-        competitionId,
         ...data,
+        competitionId: selectedCompetitionId
       });
       toast.success('Iscrizione aggiunta con successo');
       setIsCreateDialogOpen(false);
-    } catch (e) {
+    } catch {
       toast.error('Errore durante la creazione iscrizione');
     }
   };
@@ -111,18 +109,58 @@ export const RegistrationsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!competitionId}>
+          <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!selectedCompetitionId}>
             + Nuova Iscrizione
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedCompetitionId}>
             <Download className="mr-2 h-4 w-4" />
             Esporta
           </Button>
         </div>
       </div>
 
-      {/* Statistiche */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Selezione Competizione */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Seleziona Competizione</CardTitle>
+          <CardDescription>
+            Scegli una competizione per gestire le iscrizioni
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select value={selectedCompetitionId} onValueChange={setSelectedCompetitionId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleziona una competizione" />
+            </SelectTrigger>
+            <SelectContent>
+              {competitions.map((competition) => (
+                <SelectItem key={competition.id} value={competition.id}>
+                  {competition.name} - {competition.location} ({competition.status})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Placeholder quando nessuna competizione è selezionata */}
+      {!selectedCompetitionId && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">
+                Seleziona una competizione per visualizzare e gestire le iscrizioni
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Contenuto principale - mostrato solo quando una competizione è selezionata */}
+      {selectedCompetitionId && (
+        <>
+          {/* Statistiche */}
+          <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Totale Iscrizioni</CardTitle>
@@ -184,7 +222,7 @@ export const RegistrationsPage: React.FC = () => {
             </div>
             
             <Select value={statusFilter || 'all'} onValueChange={(value) => 
-              setStatusFilter(value === 'all' ? undefined : value as any)
+              setStatusFilter(value === 'all' ? undefined : value as 'pending' | 'confirmed' | 'cancelled')
             }>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Stato" />
@@ -198,7 +236,7 @@ export const RegistrationsPage: React.FC = () => {
             </Select>
             
             <Select value={paymentFilter || 'all'} onValueChange={(value) => 
-              setPaymentFilter(value === 'all' ? undefined : value as any)
+              setPaymentFilter(value === 'all' ? undefined : value as 'unpaid' | 'paid' | 'refunded')
             }>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Pagamento" />
@@ -273,6 +311,9 @@ export const RegistrationsPage: React.FC = () => {
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Nuova Iscrizione</DialogTitle>
+              <DialogDescription>
+                Crea una nuova iscrizione manuale per la competizione selezionata
+              </DialogDescription>
             </DialogHeader>
             <RegistrationForm
               competition={selectedCompetition}
@@ -283,6 +324,8 @@ export const RegistrationsPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+        </>
+      )}
     </div>
   );
-}; 
+};

@@ -551,8 +551,8 @@ export class RecordService {
       const docRef = doc(this.qualificationsCollection);
       const qualification: Omit<AthleteQualification, 'id'> = {
         ...qualificationData,
-        createdAt: serverTimestamp() as any,
-        updatedAt: serverTimestamp() as any
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
       
       await setDoc(docRef, qualification);

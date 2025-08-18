@@ -90,7 +90,7 @@ export const useDashboardStats = () => {
             id: `comp-${comp.id}`,
             type: 'competition',
             message: `Competizione "${comp.name}" creata`,
-            time: comp.createdAt,
+            time: comp.createdAt instanceof Date ? comp.createdAt : new Date(),
             user: 'Admin'
           });
         });

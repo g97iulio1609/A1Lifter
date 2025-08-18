@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback } from 'react';
 import { liveSessionService } from '@/services/liveSession';
-import type { LiveCompetitionSession, QueueItem, JudgeVote } from '@/types';
+import type { LiveCompetitionSession, QueueItem, JudgeVote, CustomDiscipline, RegistrationWithDetails } from '@/types';
 
 // Hook per ottenere sessione live
 export const useLiveSession = (sessionId: string | null, enableRealTime: boolean = true) => {
@@ -69,8 +69,8 @@ export const useCreateLiveSession = () => {
     mutationFn: ({ competitionId, setupId, disciplines, registrations }: {
       competitionId: string;
       setupId: string;
-      disciplines: any[];
-      registrations: any[];
+      disciplines: CustomDiscipline[];
+      registrations: RegistrationWithDetails[];
     }) => liveSessionService.createLiveSession(competitionId, setupId, disciplines, registrations),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['liveSession'] });
@@ -213,4 +213,4 @@ export const useConnectionStatus = () => {
     hasBeenOffline,
     shouldShowOfflineWarning: hasBeenOffline && !isOnline,
   };
-}; 
+};

@@ -85,7 +85,7 @@ export class TimerService {
 
       const timer = timerDoc.data() as CompetitionTimer;
       const now = new Date();
-      const elapsed = timer.startTime ? (now.getTime() - timer.startTime.getTime()) / 1000 : 0;
+      const elapsed = timer.startTime && timer.startTime instanceof Date ? (now.getTime() - timer.startTime.getTime()) / 1000 : 0;
       const remaining = Math.max(0, timer.duration - elapsed);
 
       await updateDoc(docRef, {
@@ -193,7 +193,7 @@ export class TimerService {
     }
 
     const now = new Date();
-    const elapsed = (now.getTime() - timer.startTime.getTime()) / 1000;
+    const elapsed = timer.startTime instanceof Date ? (now.getTime() - timer.startTime.getTime()) / 1000 : 0;
     return Math.max(0, timer.duration - elapsed);
   }
 

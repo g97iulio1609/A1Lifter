@@ -75,8 +75,11 @@ export function Combobox({
                 key={option.value}
                 value={option.searchableText || option.label}
                 onSelect={() => {
-                  onValueChange(option.value === value ? "" : option.value)
+                  console.log('Combobox - Option selected:', option.value, option.label);
+                  console.log('Combobox - Calling onValueChange with:', option.value);
+                  onValueChange(option.value)
                   setOpen(false)
+                  console.log('Combobox - Popover closed');
                 }}
               >
                 <Check

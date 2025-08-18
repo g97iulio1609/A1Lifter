@@ -193,10 +193,7 @@ export const EnhancedHomePage: React.FC = () => {
                           {comp.status === 'live' ? 'LIVE' : 'Prossima'}
                         </Badge>
                       </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="h-4 w-4 mr-1" />
-                        {comp.viewers} spettatori
-                      </div>
+
                     </div>
                     <CardTitle className="text-lg">{comp.name}</CardTitle>
                     <CardDescription className="flex items-center">

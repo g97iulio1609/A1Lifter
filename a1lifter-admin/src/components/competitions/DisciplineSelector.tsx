@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -88,7 +88,7 @@ export const DisciplineSelector: React.FC<DisciplineSelectorProps> = ({
       toast.success('Disciplina creata con successo');
       setIsCreateDialogOpen(false);
       form.reset();
-    } catch (error) {
+  } catch {
       toast.error('Errore durante la creazione della disciplina');
     }
   };
@@ -199,6 +199,9 @@ export const DisciplineSelector: React.FC<DisciplineSelectorProps> = ({
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Crea Nuova Disciplina</DialogTitle>
+                  <DialogDescription>
+                    Crea una disciplina personalizzata per la tua competizione
+                  </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(handleCreateDiscipline)} className="space-y-4">
                   <div>
@@ -219,7 +222,7 @@ export const DisciplineSelector: React.FC<DisciplineSelectorProps> = ({
                     <Label htmlFor="sport">Sport</Label>
                     <Select 
                       value={form.watch('sport')} 
-                      onValueChange={(value) => form.setValue('sport', value as any)}
+                      onValueChange={(value) => form.setValue('sport', value as DisciplineFormData['sport'])}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -249,7 +252,7 @@ export const DisciplineSelector: React.FC<DisciplineSelectorProps> = ({
                       <Label htmlFor="unit">Unità</Label>
                       <Select 
                         value={form.watch('unit')} 
-                        onValueChange={(value) => form.setValue('unit', value as any)}
+                        onValueChange={(value) => form.setValue('unit', value as DisciplineFormData['unit'])}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -269,7 +272,7 @@ export const DisciplineSelector: React.FC<DisciplineSelectorProps> = ({
                     <Label htmlFor="scoringType">Tipo di Punteggio</Label>
                     <Select 
                       value={form.watch('scoringType')} 
-                      onValueChange={(value) => form.setValue('scoringType', value as any)}
+                      onValueChange={(value) => form.setValue('scoringType', value as DisciplineFormData['scoringType'])}
                     >
                       <SelectTrigger>
                         <SelectValue />

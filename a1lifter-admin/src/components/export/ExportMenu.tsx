@@ -37,7 +37,7 @@ export const ExportMenu: React.FC<ExportMenuProps> = ({ competitionId }) => {
     try {
       exportService.exportLeaderboardToPDF(competition, leaderboard);
       toast.success('Classifica PDF esportata con successo');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'export PDF');
     } finally {
       setIsExporting(false);
@@ -54,7 +54,7 @@ export const ExportMenu: React.FC<ExportMenuProps> = ({ competitionId }) => {
     try {
       exportService.exportLeaderboardToExcel(competition, leaderboard);
       toast.success('Classifica Excel esportata con successo');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'export Excel');
     } finally {
       setIsExporting(false);
@@ -71,7 +71,7 @@ export const ExportMenu: React.FC<ExportMenuProps> = ({ competitionId }) => {
     try {
       exportService.exportAthletesToCSV(athletes);
       toast.success('Lista atleti esportata con successo');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'export CSV');
     } finally {
       setIsExporting(false);
@@ -88,7 +88,7 @@ export const ExportMenu: React.FC<ExportMenuProps> = ({ competitionId }) => {
     try {
       exportService.exportCompetitionReport(competition, leaderboard, stats);
       toast.success('Report completo esportato con successo');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'export del report');
     } finally {
       setIsExporting(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,18 +44,20 @@ export const JudgeModeInterface: React.FC<JudgeModeInterfaceProps> = ({
   const { attempt, submitVote, isSubmittingVote } = useCurrentAttemptManager(currentAttemptId);
 
   // Determina alzata corrente dall'attempt
-  const currentLift = attempt ? {
-    id: attempt.id,
-    athleteName: attempt.athleteName || 'Atleta', // TODO: ottenere da registro atleti
-    athleteNumber: 42, // TODO: ottenere da registro atleti  
-    discipline: attempt.discipline,
-    attemptNumber: attempt.attemptNumber,
-    requestedWeight: attempt.requestedWeight,
-    unit: 'kg',
-    competitionId: attempt.competitionId,
-    sessionId: attempt.sessionId || '',
-    athleteId: attempt.athleteId,
-  } : null;
+  const currentLift = useMemo(() => {
+    return attempt ? {
+      id: attempt.id,
+      athleteName: attempt.athleteName || 'Atleta',
+      athleteNumber: 42,
+      discipline: attempt.discipline,
+      attemptNumber: attempt.attemptNumber,
+      requestedWeight: attempt.requestedWeight,
+      unit: 'kg',
+      competitionId: attempt.competitionId,
+      sessionId: attempt.sessionId || '',
+      athleteId: attempt.athleteId,
+    } : null;
+  }, [attempt]);
 
   // Timer mock - TODO: implementare timer reale
   useEffect(() => {

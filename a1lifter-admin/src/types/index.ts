@@ -42,7 +42,7 @@ export type Competition = {
   name: string;
   date: Date;
   location: string;
-  type: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting';
+  type: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting' | 'crossfit';
   status: 'draft' | 'active' | 'in_progress' | 'completed';
   categories: CategoryConfig[];
   rules: CompetitionRules;
@@ -52,8 +52,8 @@ export type Competition = {
   registrationDeadline: Date;
   weighInDate?: Date;
   weighInLocation?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
   createdBy: string;
 };
 
@@ -63,7 +63,7 @@ export type PublicCompetition = {
   name: string;
   date: Date;
   location: string;
-  type: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting';
+  type: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting' | 'crossfit';
   status: 'draft' | 'active' | 'in_progress' | 'completed';
   description?: string;
   maxParticipants?: number;
@@ -105,8 +105,8 @@ export type Athlete = {
   personalRecords: { [key: string]: number };
   personalBests?: { squat?: number; bench?: number; deadlift?: number };
   competitions?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 export type Lift = {
@@ -114,7 +114,7 @@ export type Lift = {
   attempt: number;
   weight: number;
   valid: boolean;
-  timestamp: Date;
+  timestamp: Date | import('firebase/firestore').FieldValue;
 };
 
 export type Result = {
@@ -128,8 +128,8 @@ export type Result = {
   ipfScore?: number;
   dotsScore?: number;
   ranking: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 export type AthleteResult = Result & {
@@ -157,6 +157,8 @@ export type Registration = {
   status: 'pending' | 'confirmed' | 'cancelled';
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
   notes?: string;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 export type RegistrationWithDetails = Registration & {
@@ -277,8 +279,8 @@ export type JudgeAssignment = {
   position: 1 | 2 | 3; // giudice sinistra, centro, destra
   isActive: boolean;
   assignedAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 // Risultato tentativo
@@ -379,8 +381,8 @@ export type CompetitionRecord = {
   dateSet: Date;
   isActive: boolean;
   isRatified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 // Sistema di pesatura ufficiale
@@ -393,7 +395,7 @@ export type WeighIn = {
   weightCategory: string;
   bodyWeight: number;
   weight: number;
-  weighInTime: Date;
+  weighInTime: Date | import('firebase/firestore').FieldValue;
   isOfficial: boolean;
   witnessJudgeId?: string;
   notes?: string;
@@ -408,7 +410,7 @@ export type CompetitionTimer = {
   sessionId: string;
   type: 'attempt' | 'break' | 'discipline_change';
   duration: number; // secondi
-  startTime?: Date;
+  startTime?: Date | import('firebase/firestore').FieldValue;
   endTime?: Date;
   isActive: boolean;
   isPaused: boolean;
@@ -416,29 +418,38 @@ export type CompetitionTimer = {
 };
 
 // Sistema di backup
-export type BackupData = {
+export interface BackupData {
   id: string;
-  name: string;
-  size: number;
-  createdAt: Date;
   competitionId: string;
+  name: string;
+  type: 'full' | 'incremental';
   description?: string;
   timestamp: Date;
-  type: 'manual' | 'automatic' | 'incremental' | 'full';
-  dataSize: number;
-  status: 'in_progress' | 'completed' | 'failed';
-  downloadUrl?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
   expiresAt: Date;
+  createdAt: Date;
+  updatedAt?: Date;
+  createdBy: string;
+  isEncrypted?: boolean;
+  encryptionMethod?: string;
+  compressionRatio?: number;
+  checksum?: string;
   data: {
-    competition: Competition;
-    athletes: Athlete[];
-    registrations: Registration[];
-    results: AttemptResult[];
-    weighIns: WeighIn[];
-    judgeAssignments: JudgeAssignment[];
-    liveSessions: LiveSession[];
-  };
-};
+    competition?: Competition;
+    competitions?: Competition[];
+    athletes?: Athlete[];
+    registrations?: Registration[];
+    attempts?: unknown[];
+    categories?: CategoryConfig[];
+    judges?: Judge[];
+    liveSessions?: unknown[];
+    weighIns?: unknown[];
+    judgeAssignments?: unknown[];
+    results?: unknown[];
+  } & Record<string, unknown>;
+  size: number;
+  dataSize: number;
+}
 
 // Notifiche sistema
 export type SystemNotification = {
@@ -450,7 +461,7 @@ export type SystemNotification = {
   message: string;
   isRead: boolean;
   priority: 'low' | 'medium' | 'high';
-  createdAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
   expiresAt?: Date;
 };
 
@@ -522,8 +533,8 @@ export type AthleteQualification = {
   sport: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting';
   category: string;
   weightCategory: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 // Giudice
@@ -540,8 +551,8 @@ export type Judge = {
   specializations: string[];
   isActive: boolean;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 // Sessione live
@@ -560,18 +571,21 @@ export type LiveSession = {
 // Record atleta
 export type AthleteRecord = {
   id: string;
-  disciplineId: string;
-  weight: number;
-  athleteName: string;
   athleteId: string;
-  competitionId: string;
+  sport: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting';
+  discipline: string;
   category: string;
-  ageGroup?: string;
-  gender: 'M' | 'F';
-  federation?: string;
-  type: 'competition' | 'national' | 'world';
+  weightCategory?: string;
+  value: number;
+  unit: 'kg' | 'points';
+  competitionId: string;
   dateSet: Date;
-  isActive: boolean;
+  isPersonalBest: boolean;
+  isSeasonBest: boolean;
+  previousBest?: number;
+  improvement?: number;
+  createdAt: Date | import('firebase/firestore').FieldValue;
+  updatedAt: Date | import('firebase/firestore').FieldValue;
 };
 
 // Sessione live estesa

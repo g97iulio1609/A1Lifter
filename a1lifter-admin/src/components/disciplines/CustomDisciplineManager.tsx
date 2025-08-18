@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Save, X, Trophy, Target, Clock, Weight, Settings } from 'lucide-react';
 import { DISCIPLINES_BY_SPORT } from '@/constants/disciplines';
 import type { CustomDiscipline, Competition } from '@/types';
@@ -31,9 +31,14 @@ const CustomDisciplineManager: React.FC<CustomDisciplineManagerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingDiscipline, setEditingDiscipline] = useState<CustomDiscipline | null>(null);
+  const defaultSport: DisciplineFormData['sport'] =
+    competition.type === 'powerlifting' || competition.type === 'strongman' || competition.type === 'weightlifting' || competition.type === 'streetlifting'
+      ? competition.type
+      : 'powerlifting';
+
   const [formData, setFormData] = useState<DisciplineFormData>({
     name: '',
-    sport: competition.type as any,
+    sport: defaultSport,
     description: '',
     scoringType: 'weight',
     equipment: '',
@@ -43,28 +48,23 @@ const CustomDisciplineManager: React.FC<CustomDisciplineManagerProps> = ({
     isActive: true
   });
 
-  useEffect(() => {
-    loadDisciplines();
-  }, [competitionId]);
-
-  const loadDisciplines = async () => {
+  const loadDisciplines = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      // Load disciplines from service - currently returns empty array
-      // In a real implementation, this would fetch from disciplinesService
       const realDisciplines: CustomDiscipline[] = [];
-      
       setDisciplines(realDisciplines);
       onDisciplinesChange?.(realDisciplines);
-      
     } catch (error) {
       console.error('Error loading disciplines:', error);
       toast.error('Errore durante il caricamento delle discipline');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onDisciplinesChange]);
+
+  useEffect(() => {
+    loadDisciplines();
+  }, [loadDisciplines, competitionId]);
 
   const handleCreateDiscipline = async () => {
     try {
@@ -181,7 +181,7 @@ const CustomDisciplineManager: React.FC<CustomDisciplineManagerProps> = ({
   const resetForm = () => {
     setFormData({
       name: '',
-      sport: competition.type as any,
+  sport: defaultSport,
       description: '',
       scoringType: 'weight',
       equipment: '',
@@ -282,7 +282,7 @@ const CustomDisciplineManager: React.FC<CustomDisciplineManagerProps> = ({
               </label>
               <select
                 value={formData.sport}
-                onChange={(e) => setFormData({ ...formData, sport: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, sport: e.target.value as DisciplineFormData['sport'] })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="powerlifting">Powerlifting</option>
@@ -298,7 +298,7 @@ const CustomDisciplineManager: React.FC<CustomDisciplineManagerProps> = ({
               </label>
               <select
                 value={formData.scoringType}
-                onChange={(e) => setFormData({ ...formData, scoringType: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, scoringType: e.target.value as DisciplineFormData['scoringType'] })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="weight">Peso</option>

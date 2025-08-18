@@ -62,7 +62,7 @@ export const exportService = {
         margin: { left: 20, right: 20 },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      yPosition = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
 
       // Nuova pagina se necessario
       if (yPosition > 250) {
@@ -193,7 +193,7 @@ export const exportService = {
   },
 
   // Export lista atleti in CSV
-  exportAthletesToCSV(athletes: any[]): void {
+  exportAthletesToCSV(athletes: Array<{ name: string; email: string; gender: string; birthDate: Date; weightClass: string; federation: string }>): void {
     const csvData = [
       ['Nome', 'Email', 'Genere', 'Data Nascita', 'Categoria Peso', 'Federazione'],
       ...athletes.map(athlete => [
@@ -218,7 +218,7 @@ export const exportService = {
   exportCompetitionReport(
     competition: Competition,
     leaderboard: CompetitionLeaderboard,
-    stats: any
+    stats: { totalResults?: number; totalAttempts?: number; validAttempts?: number; topScore?: number; averageScore?: number }
   ): void {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -254,7 +254,7 @@ export const exportService = {
       ['Totale atleti partecipanti', stats.totalResults?.toString() || '0'],
       ['Totale tentativi', stats.totalAttempts?.toString() || '0'],
       ['Tentativi validi', stats.validAttempts?.toString() || '0'],
-      ['Percentuale successo', stats.totalAttempts ? `${Math.round((stats.validAttempts / stats.totalAttempts) * 100)}%` : '0%'],
+      ['Percentuale successo', stats.totalAttempts ? `${Math.round(((stats.validAttempts ?? 0) / stats.totalAttempts) * 100)}%` : '0%'],
       ['Punteggio massimo', `${stats.topScore || 0}kg`],
       ['Punteggio medio', `${Math.round(stats.averageScore || 0)}kg`],
     ];
@@ -271,7 +271,7 @@ export const exportService = {
       margin: { left: 20, right: 20 },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 20;
+    yPosition = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
 
     // Nuova pagina per classifiche
     doc.addPage();
@@ -306,7 +306,7 @@ export const exportService = {
         margin: { left: 20, right: 20 },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      yPosition = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
 
       if (yPosition > 250) {
         doc.addPage();

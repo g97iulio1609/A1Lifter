@@ -65,9 +65,8 @@ export const CSVImport: React.FC<CSVImportProps> = ({ onImportComplete }) => {
 
         const parsed = parseAthletes(jsonData as string[][]);
         setParsedAthletes(parsed);
-      } catch (error) {
+      } catch {
         toast.error('Errore durante la lettura del file');
-        console.error('Parse error:', error);
       }
     };
 
@@ -210,7 +209,7 @@ export const CSVImport: React.FC<CSVImportProps> = ({ onImportComplete }) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'importazione');
     } finally {
       setIsImporting(false);

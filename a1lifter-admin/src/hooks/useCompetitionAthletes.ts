@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import type { Athlete, Registration } from '@/types';
@@ -21,7 +21,7 @@ export const useCompetitionAthletes = (competitionId: string | undefined): UseCo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAthletes = async () => {
+  const fetchAthletes = useCallback(async () => {
     if (!competitionId) {
       setAthletes([]);
       return;
@@ -86,11 +86,11 @@ export const useCompetitionAthletes = (competitionId: string | undefined): UseCo
     } finally {
       setLoading(false);
     }
-  };
+  }, [competitionId]);
 
   useEffect(() => {
     fetchAthletes();
-  }, [competitionId]);
+  }, [competitionId, fetchAthletes]);
 
   return {
     athletes,

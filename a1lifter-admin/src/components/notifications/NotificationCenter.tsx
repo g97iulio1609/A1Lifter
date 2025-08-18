@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, X, Check, AlertTriangle, Info, CheckCircle, XCircle, Clock, Filter, Search, Trash2 } from 'lucide-react';
 import { notificationService } from '@/services/notifications';
 import type { SystemNotification } from '@/types';
@@ -68,7 +68,15 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
               <span>Priorità: {notification.priority === 'high' ? 'Alta' : notification.priority === 'medium' ? 'Media' : 'Bassa'}</span>
               <span>•</span>
-              <span>{new Date(notification.createdAt).toLocaleString()}</span>
+              <span>{(() => {
+                const v = notification.createdAt as unknown;
+                if (v instanceof Date) return v.toLocaleString();
+                if (v && typeof v === 'object' && 'toDate' in (v as Record<string, unknown>)) {
+                  const toDate = (v as { toDate?: unknown }).toDate;
+                  if (typeof toDate === 'function') return (toDate as () => Date)().toLocaleString();
+                }
+                return new Date().toLocaleString();
+              })()}</span>
               {notification.competitionId && (
                 <>
                   <span>•</span>
@@ -114,24 +122,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ userId, competi
     byType: {} as Record<string, number>
   });
 
-  useEffect(() => {
-    loadNotifications();
-  }, [userId, competitionId]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
       let notificationData: SystemNotification[];
-      
       if (competitionId) {
         notificationData = await notificationService.getNotificationsForCompetition(competitionId);
       } else if (userId) {
         notificationData = await notificationService.getNotificationsForUser(userId);
       } else {
-        // Carica tutte le notifiche per admin
         notificationData = await notificationService.getNotificationsForUser('admin');
       }
-      
       setNotifications(notificationData);
       updateStats(notificationData);
     } catch (error) {
@@ -140,7 +141,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ userId, competi
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [competitionId, userId]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  
 
   const updateStats = (notificationData: SystemNotification[]) => {
     const stats = {

@@ -25,6 +25,7 @@ import {
 import { toast } from 'sonner';
 import { athletesService } from '@/services/athletes';
 import type { Athlete } from '@/types';
+import { AthleteForm } from './AthleteForm';
 
 interface EnhancedAthleteManagerProps {
   competitionId?: string;
@@ -39,6 +40,8 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedWeightClass, setSelectedWeightClass] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
 
 
   const [newAthlete, setNewAthlete] = useState<Partial<Athlete>>({
@@ -98,10 +101,10 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
         competitions: newAthlete.competitions || 0
       };
       
-      const athleteId = await athletesService.createAthlete(athleteData);
-      
-      // Ricarica la lista degli atleti
-      await loadAthletes();
+      await athletesService.createAthlete(athleteData);
+       
+       // Ricarica la lista degli atleti
+       await loadAthletes();
       
       // Reset form
       setNewAthlete({
@@ -136,6 +139,42 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
     } catch (error) {
       console.error('Errore durante l\'eliminazione dell\'atleta:', error);
       toast.error('Errore durante l\'eliminazione dell\'atleta');
+    }
+  };
+
+  const handleEditAthlete = (athlete: Athlete) => {
+    setEditingAthlete(athlete);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateAthlete = async (data: { name: string; email: string; birthDate: string; gender: "M" | "F"; weightClass: string; federation: string; }) => {
+    if (!editingAthlete) return;
+    
+    setSaving(true);
+    try {
+      // Converti birthDate da string a Date
+      const athleteData: Partial<Athlete> = {
+        ...data,
+        birthDate: new Date(data.birthDate)
+      };
+      
+      await athletesService.updateAthlete(editingAthlete.id, athleteData);
+      
+      // Aggiorna la lista locale
+      setAthletes(athletes.map(athlete => 
+        athlete.id === editingAthlete.id 
+          ? { ...athlete, ...athleteData, updatedAt: new Date() }
+          : athlete
+      ));
+      
+      setIsEditDialogOpen(false);
+      setEditingAthlete(null);
+      toast.success('Atleta aggiornato con successo');
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento dell\'atleta:', error);
+      toast.error('Errore nell\'aggiornamento dell\'atleta');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -439,8 +478,19 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
       </Card>
 
       {/* Athletes List */}
-      <div className="grid gap-4">
-        {filteredAthletes.map((athlete) => (
+      {loading ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Caricamento Atleti</h3>
+            <p className="text-muted-foreground">
+              Stiamo caricando la lista degli atleti...
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {filteredAthletes.map((athlete) => (
           <Card key={athlete.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -504,7 +554,12 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={() => handleEditAthlete(athlete)}
+                    >
                       <Edit className="h-4 w-4" />
                       Modifica
                     </Button>
@@ -522,10 +577,11 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
       
-      {filteredAthletes.length === 0 && (
+      {!loading && filteredAthletes.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -544,6 +600,29 @@ export const EnhancedAthleteManager: React.FC<EnhancedAthleteManagerProps> = () 
           </CardContent>
         </Card>
       )}
+
+      {/* Dialog per modifica atleta */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Modifica Atleta</DialogTitle>
+            <DialogDescription>
+              Modifica le informazioni dell'atleta selezionato
+            </DialogDescription>
+          </DialogHeader>
+          {editingAthlete && (
+            <AthleteForm
+              athlete={editingAthlete}
+              onSubmit={handleUpdateAthlete}
+              onCancel={() => {
+                setIsEditDialogOpen(false);
+                setEditingAthlete(null);
+              }}
+              isLoading={saving}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

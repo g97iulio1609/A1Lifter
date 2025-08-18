@@ -20,7 +20,7 @@ export const LoginForm: React.FC = () => {
 
     try {
       await login(email, password);
-    } catch (err) {
+    } catch {
       setError('Email o password non validi');
     } finally {
       setIsLoading(false);
@@ -33,7 +33,7 @@ export const LoginForm: React.FC = () => {
 
     try {
       await loginWithGoogle();
-    } catch (err) {
+    } catch {
       setError('Errore durante il login con Google');
     } finally {
       setIsLoading(false);

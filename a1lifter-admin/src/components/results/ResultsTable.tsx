@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { AthleteResult } from '@/types';
+import type { AthleteResult, Lift } from '@/types';
 
 interface ResultsTableProps {
   results: AthleteResult[];
@@ -66,11 +66,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     return <Badge variant="outline">{ranking}°</Badge>;
   };
 
-  const getValidLifts = (lifts: any[]) => {
+  const getValidLifts = (lifts: Lift[]) => {
     return lifts.filter(lift => lift.valid).length;
   };
 
-  const getTotalLifts = (lifts: any[]) => {
+  const getTotalLifts = (lifts: Lift[]) => {
     return lifts.length;
   };
 

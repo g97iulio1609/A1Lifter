@@ -88,7 +88,7 @@ export const organizerService = {
     // Aggiungi risultati alla timeline
     for (const result of results.slice(-20)) {
       timeline.push({
-        timestamp: result.updatedAt,
+        timestamp: result.updatedAt instanceof Date ? result.updatedAt : new Date(),
         type: 'result',
         athleteName: result.athleteName,
         description: `Totale: ${result.totalScore}kg`,

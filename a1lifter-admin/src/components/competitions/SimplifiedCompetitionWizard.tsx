@@ -38,7 +38,7 @@ interface WizardStep {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   completed: boolean;
 }
 
@@ -98,7 +98,7 @@ export const SimplifiedCompetitionWizard: React.FC<SimplifiedCompetitionWizardPr
     }
   ];
 
-  const updateFormData = (field: keyof CompetitionData, value: any) => {
+  const updateFormData = <K extends keyof CompetitionData>(field: K, value: CompetitionData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

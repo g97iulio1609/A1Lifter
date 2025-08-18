@@ -122,7 +122,7 @@ export class CalculationService {
     if (total <= 0 || bodyweight <= 0) return 0;
 
     // Formula semplificata GL Points
-    let baseScore = this.calculateWilks(total, bodyweight, gender);
+    const baseScore = this.calculateWilks(total, bodyweight, gender);
     
     // Fattore età
     let ageFactor = 1;
@@ -395,7 +395,11 @@ export class CalculationService {
       this.calculateDOTS(bestTotal, athlete.bodyweight, athlete.gender === 'M' ? 'male' : 'female') : 0;
 
     // Statistiche per disciplina
-    const disciplines: Record<string, any> = {};
+    const disciplines: Record<string, {
+      bestWeight: number;
+      attempts: number;
+      successRate: number;
+    }> = {};
     const disciplineGroups = new Map<string, AttemptResult[]>();
 
     validResults.forEach(result => {

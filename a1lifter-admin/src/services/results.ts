@@ -13,6 +13,7 @@ import {
   QueryConstraint 
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import type { UpdateData, DocumentData } from 'firebase/firestore';
 import { athletesService } from './athletes';
 import { competitionsService } from './competitions';
 import type { Result, AthleteResult, CompetitionLeaderboard, Lift } from '@/types';
@@ -43,12 +44,14 @@ export const resultsService = {
     const q = query(collection(db, RESULTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
     
-    return querySnapshot.docs.map(doc => ({
+  return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      lifts: doc.data().lifts?.map((lift: any) => ({
+      lifts: doc.data().lifts?.map((lift: Record<string, unknown>) => ({
         ...lift,
-        timestamp: lift.timestamp?.toDate() || new Date(),
+        timestamp: (lift.timestamp && typeof lift.timestamp === 'object' && 'toDate' in lift.timestamp)
+          ? (lift.timestamp as { toDate: () => Date }).toDate()
+          : new Date(),
       })) || [],
       createdAt: doc.data().createdAt?.toDate() || new Date(),
       updatedAt: doc.data().updatedAt?.toDate() || new Date(),
@@ -65,9 +68,11 @@ export const resultsService = {
       return {
         id: docSnap.id,
         ...data,
-        lifts: data.lifts?.map((lift: any) => ({
+  lifts: data.lifts?.map((lift: Record<string, unknown>) => ({
           ...lift,
-          timestamp: lift.timestamp?.toDate() || new Date(),
+          timestamp: (lift.timestamp && typeof lift.timestamp === 'object' && 'toDate' in lift.timestamp)
+            ? (lift.timestamp as { toDate: () => Date }).toDate()
+            : new Date(),
         })) || [],
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
@@ -151,7 +156,7 @@ export const resultsService = {
     
     const liftsWithTimestamp = resultData.lifts.map(lift => ({
       ...lift,
-      timestamp: Timestamp.fromDate(lift.timestamp),
+      timestamp: lift.timestamp instanceof Date ? Timestamp.fromDate(lift.timestamp) : lift.timestamp,
     }));
 
     const docRef = await addDoc(collection(db, RESULTS_COLLECTION), {
@@ -167,19 +172,19 @@ export const resultsService = {
   // Aggiorna un risultato esistente
   async updateResult(id: string, resultData: Partial<Omit<Result, 'id' | 'createdAt'>>): Promise<void> {
     const docRef = doc(db, RESULTS_COLLECTION, id);
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...resultData,
       updatedAt: Timestamp.now(),
     };
 
     if (resultData.lifts) {
-      updateData.lifts = resultData.lifts.map(lift => ({
+  (updateData as { lifts?: unknown[] }).lifts = resultData.lifts.map(lift => ({
         ...lift,
-        timestamp: Timestamp.fromDate(lift.timestamp),
+        timestamp: lift.timestamp instanceof Date ? Timestamp.fromDate(lift.timestamp) : lift.timestamp,
       }));
     }
 
-    await updateDoc(docRef, updateData);
+  await updateDoc(docRef, updateData as UpdateData<DocumentData>);
   },
 
   // Elimina un risultato

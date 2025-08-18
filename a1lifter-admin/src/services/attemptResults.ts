@@ -10,9 +10,11 @@ import {
   where, 
   orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  QueryConstraint
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import type { UpdateData, DocumentData } from 'firebase/firestore';
 import type { AttemptResult, JudgeVote } from '@/types';
 
 const ATTEMPT_RESULTS_COLLECTION = 'attemptResults';
@@ -166,7 +168,7 @@ export const attemptResultsService = {
     const isCompleted = totalVotes >= 3 || validVotes >= 2 || invalidVotes >= 2;
     
     // Aggiorna risultato
-    const updateData: any = {
+  const updateData: Record<string, unknown> = {
       judgeVotes: updatedVotes,
       isValid,
       updatedAt: serverTimestamp(),
@@ -176,7 +178,7 @@ export const attemptResultsService = {
       updateData.completedAt = serverTimestamp();
     }
     
-    await updateDoc(attemptRef, updateData);
+  await updateDoc(attemptRef, updateData as UpdateData<DocumentData>);
     
     return isCompleted;
   },
@@ -217,7 +219,7 @@ export const attemptResultsService = {
     athleteId: string, 
     disciplineId?: string
   ): Promise<AttemptResult[]> {
-    const constraints: any[] = [
+    const constraints: Array<QueryConstraint> = [
       where('sessionId', '==', sessionId),
       where('athleteId', '==', athleteId),
     ];

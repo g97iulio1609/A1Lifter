@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Scale, Search, Plus, Download, Filter, User, AlertTriangle, Check, X, Trophy } from 'lucide-react';
 import { weighInService } from '@/services/weighIn';
 import type { WeighIn } from '@/types';
@@ -29,7 +29,8 @@ const CreateWeighInModal: React.FC<CreateWeighInModalProps> = ({
     bodyWeight: '',
     categoryId: ''
   });
-  const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
+  type AthleteOption = Parameters<typeof AthleteAutocomplete>[0]['athletes'][number];
+  const [selectedAthlete, setSelectedAthlete] = useState<AthleteOption | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { athletes } = useCompetitionAthletes(formData.competitionId);
   const { competitions } = useActiveCompetitions();
@@ -240,28 +241,15 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId: in
     rejected: 0
   });
 
-  useEffect(() => {
-    loadWeighIns();
-  }, [selectedCompetitionId]);
-
-  // Aggiorna la competizione selezionata quando cambia quella iniziale
-  useEffect(() => {
-    if (initialCompetitionId && initialCompetitionId !== selectedCompetitionId) {
-      setSelectedCompetitionId(initialCompetitionId);
-    }
-  }, [initialCompetitionId]);
-
-  const loadWeighIns = async () => {
+  const loadWeighIns = useCallback(async () => {
     try {
       setIsLoading(true);
       let weighInData: WeighIn[];
-      
       if (selectedCompetitionId) {
         weighInData = await weighInService.getWeighInsByCompetition(selectedCompetitionId);
       } else {
         weighInData = await weighInService.getAllWeighIns();
       }
-      
       setWeighIns(weighInData);
       updateStats(weighInData);
     } catch (error) {
@@ -270,7 +258,20 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId: in
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCompetitionId]);
+
+  useEffect(() => {
+    loadWeighIns();
+  }, [selectedCompetitionId, loadWeighIns]);
+
+  // Aggiorna la competizione selezionata quando cambia quella iniziale
+  useEffect(() => {
+    if (initialCompetitionId && initialCompetitionId !== selectedCompetitionId) {
+      setSelectedCompetitionId(initialCompetitionId);
+    }
+  }, [initialCompetitionId, selectedCompetitionId]);
+
+  // loadWeighIns memoized sopra
 
   const updateStats = (weighInData: WeighIn[]) => {
     const stats = {
@@ -503,7 +504,7 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId: in
             <Filter className="h-4 w-4 text-gray-400" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Tutti gli stati</option>
@@ -597,9 +598,9 @@ const WeighInManagement: React.FC<WeighInManagementProps> = ({ competitionId: in
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div>{new Date(weighIn.weighInTime).toLocaleDateString()}</div>
+                        <div>{weighIn.weighInTime instanceof Date ? weighIn.weighInTime.toLocaleDateString() : new Date((weighIn.weighInTime as unknown as { toDate?: () => Date })?.toDate?.() ?? Date.now()).toLocaleDateString()}</div>
                         <div className="text-xs text-gray-500">
-                          {new Date(weighIn.weighInTime).toLocaleTimeString()}
+                          {weighIn.weighInTime instanceof Date ? weighIn.weighInTime.toLocaleTimeString() : new Date((weighIn.weighInTime as unknown as { toDate?: () => Date })?.toDate?.() ?? Date.now()).toLocaleTimeString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

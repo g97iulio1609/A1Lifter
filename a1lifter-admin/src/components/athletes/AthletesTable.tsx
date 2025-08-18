@@ -124,6 +124,8 @@ export const AthletesTable: React.FC<AthletesTableProps> = ({
 
   return (
     <>
+  {/** safe date util to render firestore dates */}
+  {(() => null)()}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -161,7 +163,15 @@ export const AthletesTable: React.FC<AthletesTableProps> = ({
                   <TableCell>{athlete.weightClass}</TableCell>
                   <TableCell>{athlete.federation}</TableCell>
                   <TableCell>
-                    {format(athlete.createdAt, 'dd/MM/yyyy', { locale: it })}
+                    {format((() => {
+                      const v = athlete.createdAt as unknown;
+                      if (v instanceof Date) return v;
+                      if (v && typeof v === 'object' && 'toDate' in (v as Record<string, unknown>)) {
+                        const toDate = (v as { toDate?: unknown }).toDate;
+                        if (typeof toDate === 'function') return (toDate as () => Date)();
+                      }
+                      return new Date();
+                    })(), 'dd/MM/yyyy', { locale: it })}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

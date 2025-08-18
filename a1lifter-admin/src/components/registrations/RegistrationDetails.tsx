@@ -51,7 +51,7 @@ export const RegistrationDetails: React.FC<RegistrationDetailsProps> = ({
       });
       
       toast.success(status === 'confirmed' ? 'Iscrizione confermata' : 'Iscrizione annullata');
-    } catch (error) {
+  } catch {
       toast.error('Errore durante l\'aggiornamento');
     }
   };
@@ -66,7 +66,7 @@ export const RegistrationDetails: React.FC<RegistrationDetailsProps> = ({
       });
       
       toast.success(paymentStatus === 'paid' ? 'Pagamento registrato' : 'Rimborso registrato');
-    } catch (error) {
+  } catch {
       toast.error('Errore durante l\'aggiornamento del pagamento');
     }
   };

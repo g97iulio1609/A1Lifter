@@ -35,7 +35,7 @@ interface AppleStyleLayoutProps {
 interface NavigationItem {
   name: string;
   href: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   badge?: string;
   primary?: boolean;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, UserCheck, UserX, Award } from 'lucide-react';
 import { judgeService } from '@/services/judges';
 import type { Judge, JudgeAssignment } from '@/types';
@@ -21,12 +21,23 @@ const JudgeManagement: React.FC<JudgeManagementProps> = ({
   const [selectedJudge, setSelectedJudge] = useState<Judge | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
 
+  const loadAssignments = useCallback(async () => {
+    if (!competitionId) return;
+    try {
+      const assignmentsData = await judgeService.getCompetitionJudges(competitionId);
+      setAssignments(assignmentsData);
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+      toast.error('Errore durante il caricamento delle assegnazioni');
+    }
+  }, [competitionId]);
+
   useEffect(() => {
     loadJudges();
     if (competitionId) {
       loadAssignments();
     }
-  }, [competitionId]);
+  }, [competitionId, loadAssignments]);
 
   const loadJudges = async () => {
     try {
@@ -41,17 +52,7 @@ const JudgeManagement: React.FC<JudgeManagementProps> = ({
     }
   };
 
-  const loadAssignments = async () => {
-    if (!competitionId) return;
-    
-    try {
-      const assignmentsData = await judgeService.getCompetitionJudges(competitionId);
-      setAssignments(assignmentsData);
-    } catch (error) {
-      console.error('Error loading assignments:', error);
-      toast.error('Errore durante il caricamento delle assegnazioni');
-    }
-  };
+  
 
   const handleCreateJudge = async (judgeData: Omit<Judge, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -399,7 +400,7 @@ const CreateJudgeModal: React.FC<CreateJudgeModalProps> = ({ onClose, onSubmit }
     certificationNumber: '',
     experienceYears: 0,
     federations: [] as string[],
-    certifications: [] as any[],
+    certifications: [] as { federation: string; level: string; sport: 'powerlifting' | 'strongman' | 'crossfit' | 'weightlifting'; validUntil?: Date; certificationNumber?: string }[],
     specializations: [] as string[],
     isActive: true
   });
@@ -469,7 +470,7 @@ const CreateJudgeModal: React.FC<CreateJudgeModalProps> = ({ onClose, onSubmit }
             <select
               required
               value={formData.certificationLevel}
-              onChange={(e) => setFormData(prev => ({ ...prev, certificationLevel: e.target.value as any }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, certificationLevel: e.target.value as typeof formData.certificationLevel }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="local">Locale</option>

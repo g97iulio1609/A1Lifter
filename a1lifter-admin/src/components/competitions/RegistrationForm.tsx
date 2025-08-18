@@ -37,6 +37,10 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   isLoading = false
 }) => {
   const { data: athletes = [] } = useAthletes();
+  
+  // Debug logging
+  console.log('RegistrationForm - Athletes data:', athletes);
+  console.log('RegistrationForm - Athletes count:', athletes.length);
 
   const {
     register,
@@ -64,6 +68,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     label: `${athlete.name} (${athlete.gender}) - ${athlete.weightClass}`,
     searchableText: `${athlete.name} ${athlete.email} ${athlete.gender} ${athlete.weightClass}`.toLowerCase()
   }));
+  
+  console.log('RegistrationForm - Athlete options:', athleteOptions);
+  console.log('RegistrationForm - Selected athlete ID:', selectedAthleteId);
 
   // Filtra categorie compatibili con l'atleta selezionato
   const compatibleCategories = competition.categories.filter(category => {
@@ -92,7 +99,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             <Combobox
               options={athleteOptions}
               value={selectedAthleteId}
-              onValueChange={(value) => setValue('athleteId', value)}
+              onValueChange={(value) => {
+                console.log('RegistrationForm - Athlete selected:', value);
+                console.log('RegistrationForm - Setting athleteId to:', value);
+                setValue('athleteId', value);
+                console.log('RegistrationForm - After setValue, watch athleteId:', watch('athleteId'));
+              }}
               placeholder="Cerca e seleziona un atleta..."
               searchPlaceholder="Cerca per nome, email o caratteristiche..."
               emptyText="Nessun atleta trovato."

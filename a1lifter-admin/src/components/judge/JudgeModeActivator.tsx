@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, AlertTriangle, Check } from 'lucide-react';
@@ -81,6 +81,9 @@ export const JudgeModeActivator: React.FC<JudgeModeActivatorProps> = ({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Attiva Modalità Giudice</DialogTitle>
+          <DialogDescription>
+            Seleziona la competizione e la tua posizione per attivare la modalità giudice
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -202,4 +205,4 @@ export const JudgeModeActivator: React.FC<JudgeModeActivatorProps> = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,59 +51,44 @@ export const AttemptController: React.FC<AttemptControllerProps> = ({
     isUpdatingWeight 
   } = useCurrentAttemptManager(currentAttemptId);
 
-  // Timer countdown
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isTimerRunning && timer > 0) {
-      interval = setInterval(() => {
-        setTimer(prev => Math.max(0, prev - 1));
-      }, 1000);
-    } else if (timer === 0) {
-      setIsTimerRunning(false);
-      // Auto-skip quando il tempo scade
-      handleAutoSkip();
-    }
-    
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timer]);
+  // Timer countdown handled below after callbacks are defined
 
   // Crea tentativo quando cambia atleta corrente
-  useEffect(() => {
-    if (liveSession?.currentAthleteId && 
-        liveSession?.currentDiscipline && 
-        liveSession?.currentAttempt &&
-        liveSession?.currentState === 'active') {
-      
-      handleCreateAttempt();
-    }
-  }, [
-    liveSession?.currentAthleteId, 
-    liveSession?.currentDiscipline, 
-    liveSession?.currentAttempt,
-    liveSession?.currentState
-  ]);
-
-  const handleCreateAttempt = async () => {
+  const handleCreateAttempt = useCallback(async () => {
     if (!liveSession?.currentAthleteId || 
         !liveSession?.currentDiscipline || 
         !liveSession?.currentAttempt) return;
-    
     try {
       const attemptId = await createAttemptMutation.mutateAsync({
         sessionId,
         athleteId: liveSession.currentAthleteId,
         disciplineId: liveSession.currentDiscipline,
         attemptNumber: liveSession.currentAttempt,
-        requestedWeight: 100, // TODO: Ottenere peso richiesto dall'atleta
+        requestedWeight: 100,
       });
-      
       setCurrentAttemptId(attemptId);
-      setActualWeight('100'); // TODO: Peso richiesto reale
+      setActualWeight('100');
     } catch (error) {
       console.error('Error creating attempt:', error);
     }
-  };
+  }, [createAttemptMutation, liveSession, sessionId]);
+
+  useEffect(() => {
+    if (liveSession?.currentAthleteId && 
+        liveSession?.currentDiscipline && 
+        liveSession?.currentAttempt &&
+        liveSession?.currentState === 'active') {
+      handleCreateAttempt();
+    }
+  }, [
+    liveSession?.currentAthleteId, 
+    liveSession?.currentDiscipline, 
+    liveSession?.currentAttempt,
+    liveSession?.currentState,
+    handleCreateAttempt
+  ]);
+
+  
 
   const handleStartTimer = () => {
     setIsTimerRunning(true);
@@ -128,7 +113,7 @@ export const AttemptController: React.FC<AttemptControllerProps> = ({
     }
   };
 
-  const handleNextAthlete = async () => {
+  const handleNextAthlete = useCallback(async () => {
     // Completa il tentativo corrente se in corso
     if (currentAttemptId && stats?.isCompleted) {
       await completeAttemptMutation.mutateAsync(sessionId);
@@ -141,17 +126,30 @@ export const AttemptController: React.FC<AttemptControllerProps> = ({
     setCurrentAttemptId(null);
     setTimer(60);
     setIsTimerRunning(false);
-  };
-
-  const handleAutoSkip = async () => {
-    // Gestisce lo skip automatico quando il tempo scade
+  }, [completeAttemptMutation, currentAttemptId, nextAthleteMutation, sessionId, stats]);
+  
+  const handleAutoSkip = useCallback(async () => {
     if (stats && !stats.isCompleted) {
-      // Marca come tentativo fallito se nessun giudice ha votato
       console.log('Time expired - auto skip');
     }
-    
     await handleNextAthlete();
-  };
+  }, [stats, handleNextAthlete]);
+
+  // Timer countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning && timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => Math.max(0, prev - 1));
+      }, 1000);
+    } else if (timer === 0) {
+      setIsTimerRunning(false);
+      handleAutoSkip();
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timer, handleAutoSkip]);
+
+  
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -168,7 +166,7 @@ export const AttemptController: React.FC<AttemptControllerProps> = ({
   const getVoteDisplay = (position: 1 | 2 | 3) => {
     if (!attempt) return null;
     
-    const vote = attempt.judgeVotes.find(v => v.position === position);
+  const vote = attempt.judgeVotes.find((v: { position: 1 | 2 | 3; vote: 'valid' | 'invalid' }) => v.position === position);
     if (!vote) return <div className="w-8 h-8 border-2 border-gray-300 rounded" />;
     
     return vote.vote === 'valid' 

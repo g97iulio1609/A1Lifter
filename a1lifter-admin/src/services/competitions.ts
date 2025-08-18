@@ -13,6 +13,7 @@ import {
   QueryConstraint 
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import type { UpdateData, DocumentData } from 'firebase/firestore';
 import type { Competition, CompetitionWithStats, Registration } from '@/types';
 
 const COMPETITIONS_COLLECTION = 'competitions';
@@ -40,8 +41,8 @@ export const competitionsService = {
     try {
       const q = query(collection(db, COMPETITIONS_COLLECTION), ...constraints);
       querySnapshot = await getDocs(q);
-    } catch (error: any) {
-      if (error.code === 'failed-precondition') {
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code === 'failed-precondition') {
         console.warn('Composite index missing for competitions; using fallback without orderBy');
         const qFallback = query(collection(db, COMPETITIONS_COLLECTION));
         querySnapshot = await getDocs(qFallback);
@@ -147,7 +148,7 @@ export const competitionsService = {
   // Aggiorna una competizione esistente
   async updateCompetition(id: string, competitionData: Partial<Omit<Competition, 'id' | 'createdAt'>>): Promise<void> {
     const docRef = doc(db, COMPETITIONS_COLLECTION, id);
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...competitionData,
       updatedAt: Timestamp.now(),
     };
@@ -156,7 +157,7 @@ export const competitionsService = {
       updateData.date = Timestamp.fromDate(competitionData.date);
     }
 
-    await updateDoc(docRef, updateData);
+  await updateDoc(docRef, updateData as UpdateData<DocumentData>);
   },
 
   // Elimina una competizione
@@ -221,7 +222,7 @@ export const competitionsService = {
     upcoming: number;
     completed: number;
     totalRegistrations: number;
-    byType: { powerlifting: number; strongman: number; weightlifting: number; streetlifting: number };
+    byType: { powerlifting: number; strongman: number; weightlifting: number; streetlifting: number; crossfit: number };
   }> {
     const competitions = await this.getCompetitions();
     const now = new Date();
@@ -232,7 +233,7 @@ export const competitionsService = {
       upcoming: competitions.filter(c => c.date > now && c.status !== 'completed').length,
       completed: competitions.filter(c => c.status === 'completed').length,
       totalRegistrations: competitions.reduce((sum, c) => sum + c.registrationsCount, 0),
-      byType: { powerlifting: 0, strongman: 0, weightlifting: 0, streetlifting: 0 },
+      byType: { powerlifting: 0, strongman: 0, weightlifting: 0, streetlifting: 0, crossfit: 0 },
     };
 
     competitions.forEach(comp => {
@@ -256,9 +257,10 @@ export const competitionsService = {
       status: 'draft' as const,
     };
 
-    // Rimuovi le proprietà che non devono essere duplicate
-    const { id: _, createdAt, updatedAt, registrationsCount, categoriesCount, daysUntilStart, ...competitionData } = duplicatedCompetition;
+  // Rimuovi le proprietà che non devono essere duplicate
+  const competitionData = { ...duplicatedCompetition } as Omit<typeof duplicatedCompetition, 'id'> & { id?: string };
+  delete (competitionData as { id?: string }).id;
 
-    return await this.createCompetition(competitionData);
+  return await this.createCompetition(competitionData as unknown as Parameters<typeof this.createCompetition>[0]);
   }
 };

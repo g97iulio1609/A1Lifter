@@ -12,12 +12,12 @@ import type { SystemConfig } from '@/types';
 
 export class ConfigService {
   private collection = collection(db, 'systemConfig');
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, unknown> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minuti
 
   // Ottieni configurazione
-  async getConfig(key: string): Promise<any> {
+  async getConfig(key: string): Promise<unknown> {
     try {
       // Controlla cache
       if (this.isInCache(key)) {
@@ -41,16 +41,16 @@ export class ConfigService {
   }
 
   // Imposta configurazione
-  async setConfig(key: string, value: any, description?: string): Promise<void> {
+  async setConfig(key: string, value: unknown, description?: string): Promise<void> {
     try {
       const docRef = doc(this.collection, key);
       const configData: Omit<SystemConfig, 'id'> = {
         key,
-        value,
+        value: value as { [key: string]: unknown },
         description,
         type: 'object',
         isEditable: true,
-        updatedAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as unknown as Date,
         updatedBy: 'system'
       };
 
@@ -63,7 +63,7 @@ export class ConfigService {
   }
 
   // Aggiorna configurazione
-  async updateConfig(key: string, value: any): Promise<void> {
+  async updateConfig(key: string, value: unknown): Promise<void> {
     try {
       const docRef = doc(this.collection, key);
       await updateDoc(docRef, {
@@ -250,14 +250,14 @@ export class ConfigService {
   }
 
   // Configurazioni specifiche per sport
-  async getSportConfigs(sport: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting'): Promise<any> {
+  async getSportConfigs(sport: 'powerlifting' | 'strongman' | 'weightlifting' | 'streetlifting'): Promise<Record<string, unknown>> {
     try {
       const configs = await this.getAllConfigs();
       const sportConfigs = configs.filter(config => 
         config.key.startsWith(`${sport}.`)
       );
       
-      const result: any = {};
+      const result: Record<string, unknown> = {};
       sportConfigs.forEach(config => {
         const key = config.key.replace(`${sport}.`, '');
         result[key] = config.value;
@@ -422,7 +422,7 @@ export class ConfigService {
     return true;
   }
 
-  private setCache(key: string, value: any): void {
+  private setCache(key: string, value: unknown): void {
     this.cache.set(key, value);
     this.cacheExpiry.set(key, Date.now() + this.CACHE_DURATION);
   }

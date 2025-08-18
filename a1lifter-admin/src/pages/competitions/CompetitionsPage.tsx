@@ -4,7 +4,7 @@ import { Search, Trophy, Calendar, Users, Target, List, Workflow } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,7 +54,7 @@ export const CompetitionsPage: React.FC = () => {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success('Competizione eliminata con successo');
-    } catch (error) {
+    } catch {
       toast.error('Errore durante l\'eliminazione della competizione');
     }
   };
@@ -82,7 +82,7 @@ export const CompetitionsPage: React.FC = () => {
       toast.success('Competizione duplicata con successo');
       setIsDuplicateDialogOpen(false);
       setCompetitionToDuplicate(null);
-    } catch (error) {
+    } catch {
       toast.error('Errore durante la duplicazione della competizione');
     }
   };
@@ -264,6 +264,9 @@ export const CompetitionsPage: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Duplica Competizione</DialogTitle>
+            <DialogDescription>
+              Crea una copia della competizione selezionata con una nuova data
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">

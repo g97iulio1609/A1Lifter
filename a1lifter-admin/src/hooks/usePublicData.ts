@@ -10,7 +10,6 @@ interface LiveCompetition {
   status: 'live' | 'upcoming';
   currentAthlete?: string;
   discipline?: string;
-  viewers?: number;
   location: string;
   date: Date;
 }
@@ -62,7 +61,6 @@ export const useLiveCompetitions = () => {
             status: comp.status === 'active' ? 'live' as const : 'upcoming' as const,
             location: comp.location,
             date: new Date(comp.date),
-            viewers: Math.floor(Math.random() * 300) + 50, // Simulato per ora
             currentAthlete: comp.status === 'active' ? 'Atleta in gara' : undefined,
             discipline: comp.status === 'active' ? 'Squat' : undefined
           }));

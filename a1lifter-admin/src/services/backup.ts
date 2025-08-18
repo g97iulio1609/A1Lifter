@@ -19,8 +19,7 @@ export class BackupService {
 
   // Crea backup completo
   async createFullBackup(
-    competitionId: string,
-    description?: string
+    competitionId: string
   ): Promise<string> {
     try {
       // Raccogli tutti i dati della competizione
@@ -38,12 +37,13 @@ export class BackupService {
       
       const backupData: Omit<BackupData, 'id' | 'createdAt'> = {
         competitionId,
-        name: `Backup completo - ${new Date().toLocaleString()}`,
+        name: `Backup completo - ${competitionData.name}`,
         type: 'full',
-        description: description || `Backup completo - ${new Date().toLocaleString()}`,
+        description: `Backup completo della competizione ${competitionData.name}`,
         timestamp: new Date(),
         status: 'completed',
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 giorni
+        createdBy: 'system', // TODO: get from auth context
         data: {
           competition: competitionData,
           athletes: athletesData,
@@ -102,6 +102,7 @@ export class BackupService {
         timestamp: new Date(),
         status: 'completed',
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 giorni
+        createdBy: 'system', // TODO: get from auth context
         data: modifiedData,
         dataSize: this.calculateDataSize(modifiedData),
         size: this.calculateDataSize(modifiedData)
@@ -218,32 +219,44 @@ export class BackupService {
       // Ripristina risultati
       if (options.restoreResults && data.results) {
         for (const result of data.results) {
-          const resultRef = doc(db, 'results', result.id);
-          batch.set(resultRef, result);
+          const resultId = (result as Record<string, unknown>).id;
+          if (typeof resultId === 'string' && resultId) {
+            const resultRef = doc(db, 'results', resultId);
+            batch.set(resultRef, result);
+          }
         }
       }
 
       // Ripristina pesate
       if (options.restoreWeighIns && data.weighIns) {
         for (const weighIn of data.weighIns) {
-          const weighInRef = doc(db, 'weighIns', weighIn.id);
-          batch.set(weighInRef, weighIn);
+          const weighInId = (weighIn as Record<string, unknown>).id;
+          if (typeof weighInId === 'string' && weighInId) {
+            const weighInRef = doc(db, 'weighIns', weighInId);
+            batch.set(weighInRef, weighIn);
+          }
         }
       }
 
       // Ripristina assegnazioni giudici
       if (options.restoreJudgeAssignments && data.judgeAssignments) {
         for (const assignment of data.judgeAssignments) {
-          const assignmentRef = doc(db, 'judgeAssignments', assignment.id);
-          batch.set(assignmentRef, assignment);
+          const assignmentId = (assignment as Record<string, unknown>).id;
+          if (typeof assignmentId === 'string' && assignmentId) {
+            const assignmentRef = doc(db, 'judgeAssignments', assignmentId);
+            batch.set(assignmentRef, assignment);
+          }
         }
       }
 
       // Ripristina sessioni live
       if (options.restoreLiveSessions && data.liveSessions) {
         for (const session of data.liveSessions) {
-          const sessionRef = doc(db, 'liveSessions', session.id);
-          batch.set(sessionRef, session);
+          const sessionId = (session as Record<string, unknown>).id;
+          if (typeof sessionId === 'string' && sessionId) {
+            const sessionRef = doc(db, 'liveSessions', sessionId);
+            batch.set(sessionRef, session);
+          }
         }
       }
 
@@ -273,7 +286,7 @@ export class BackupService {
       }, intervalMinutes * 60 * 1000);
 
       // Salva l'ID dell'intervallo per poterlo cancellare
-      (window as any).autoBackupInterval = interval;
+      (window as Window & { autoBackupInterval?: NodeJS.Timeout }).autoBackupInterval = interval;
     } catch (error) {
       console.error('Error scheduling auto backup:', error);
       throw new Error('Errore durante la programmazione del backup automatico');
@@ -282,10 +295,10 @@ export class BackupService {
 
   // Ferma backup automatico
   stopAutoBackup(): void {
-    const interval = (window as any).autoBackupInterval;
+    const interval = (window as Window & { autoBackupInterval?: NodeJS.Timeout }).autoBackupInterval;
     if (interval) {
       clearInterval(interval);
-      delete (window as any).autoBackupInterval;
+      delete (window as Window & { autoBackupInterval?: NodeJS.Timeout }).autoBackupInterval;
     }
   }
 
@@ -485,7 +498,7 @@ export class BackupService {
     }
   }
 
-  private async getWeighInsData(competitionId: string): Promise<any[]> {
+  private async getWeighInsData(competitionId: string): Promise<Array<Record<string, unknown>>> {
     try {
       const snapshot = await getDocs(
         query(collection(db, 'weighIns'), where('competitionId', '==', competitionId))
@@ -501,7 +514,7 @@ export class BackupService {
     }
   }
 
-  private async getJudgeAssignmentsData(competitionId: string): Promise<any[]> {
+  private async getJudgeAssignmentsData(competitionId: string): Promise<Array<Record<string, unknown>>> {
     try {
       const snapshot = await getDocs(
         query(collection(db, 'judgeAssignments'), where('competitionId', '==', competitionId))
@@ -517,7 +530,7 @@ export class BackupService {
     }
   }
 
-  private async getLiveSessionsData(competitionId: string): Promise<any[]> {
+  private async getLiveSessionsData(competitionId: string): Promise<Array<Record<string, unknown>>> {
     try {
       const snapshot = await getDocs(
         query(collection(db, 'liveSessions'), where('competitionId', '==', competitionId))
@@ -533,11 +546,11 @@ export class BackupService {
     }
   }
 
-  private calculateDataSize(data: any): number {
+  private calculateDataSize(data: unknown): number {
     return JSON.stringify(data).length;
   }
 
-  private async getModifiedDataSince(competitionId: string): Promise<any> {
+  private async getModifiedDataSince(competitionId: string): Promise<Record<string, unknown>> {
     // Implementazione per ottenere solo i dati modificati dopo una certa data
     // Questo richiederebbe timestamp di modifica sui documenti
     return {
