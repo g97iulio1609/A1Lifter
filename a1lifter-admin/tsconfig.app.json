@@ -5,7 +5,9 @@
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "skipLibCheck": true,
+  "skipLibCheck": true,
+  "allowSyntheticDefaultImports": true,
+  "esModuleInterop": true,
 
     /* Bundler mode */
   "moduleResolution": "node",
