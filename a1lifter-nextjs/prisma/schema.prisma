@@ -1,0 +1,707 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User and Authentication
+model User {
+  id          String            @id @default(cuid())
+  email       String            @unique
+  name        String
+  role        UserRole          @default(ATHLETE)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  
+  // Relations
+  permissions         UserPermission[]
+  judgeProfile        JudgeProfile?
+  createdCompetitions Competition[]    @relation("CompetitionCreator")
+  judgeAssignments    JudgeAssignment[]
+  registrations       Registration[]
+  notifications       SystemNotification[]
+  backups             BackupData[]     @relation("BackupCreator")
+  systemConfigs       SystemConfig[]   @relation("ConfigUpdater")
+  judgeVotes          JudgeVote[]
+  
+  @@map("users")
+}
+
+model UserPermission {
+  id                     String   @id @default(cuid())
+  userId                 String
+  canManageCompetitions  Boolean  @default(false)
+  canManageAthletes      Boolean  @default(false)
+  canManageRegistrations Boolean  @default(false)
+  canViewLiveResults     Boolean  @default(true)
+  canManageUsers         Boolean  @default(false)
+  judgeableCompetitions  String[] // Array of competition IDs
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId])
+  @@map("user_permissions")
+}
+
+// Judge specific data
+model JudgeProfile {
+  id               String                @id @default(cuid())
+  userId           String                @unique
+  judgeNumber      String?
+  federations      String[]
+  isActive         Boolean               @default(true)
+  experienceYears  Int?
+  specializations  String[]
+  notes            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certifications  JudgeCertification[]
+  assignments     JudgeAssignment[]
+  
+  @@map("judge_profiles")
+}
+
+model JudgeCertification {
+  id                    String       @id @default(cuid())
+  judgeProfileId        String
+  federation            String
+  level                 String
+  sport                 SportType
+  validUntil            DateTime?
+  certificationNumber   String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  
+  judgeProfile JudgeProfile @relation(fields: [judgeProfileId], references: [id], onDelete: Cascade)
+  
+  @@map("judge_certifications")
+}
+
+// Competition Management
+model Competition {
+  id                     String               @id @default(cuid())
+  name                   String
+  date                   DateTime
+  location               String
+  type                   SportType
+  status                 CompetitionStatus    @default(DRAFT)
+  federation             String?
+  description            String?
+  maxParticipants        Int?
+  registrationDeadline   DateTime
+  weighInDate            DateTime?
+  weighInLocation        String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  createdBy              String
+  
+  creator               User                 @relation("CompetitionCreator", fields: [createdBy], references: [id])
+  categories            CategoryConfig[]
+  rules                 CompetitionRules?
+  registrations         Registration[]
+  athletes              Athlete[]
+  results               Result[]
+  liveSetup             CompetitionLiveSetup?
+  liveSessions          LiveCompetitionSession[]
+  judgeAssignments      JudgeAssignment[]
+  weighIns              WeighIn[]
+  backups               BackupData[]
+  notifications         SystemNotification[]
+  records               CompetitionRecord[]
+  attemptResults        AttemptResult[]
+  
+  @@map("competitions")
+}
+
+model CategoryConfig {
+  id            String     @id @default(cuid())
+  competitionId String
+  name          String
+  gender        Gender
+  weightClass   String
+  ageGroup      String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  competition   Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  results       Result[]
+  weighIns      WeighIn[]
+  
+  @@map("category_configs")
+}
+
+model CompetitionRules {
+  id            String     @id @default(cuid())
+  competitionId String     @unique
+  attempts      Int        @default(3)
+  disciplines   String[]
+  scoringSystem ScoringSystem @default(IPF)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  
+  @@map("competition_rules")
+}
+
+// Athlete Management
+model Athlete {
+  id              String     @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  birthDate       DateTime
+  gender          Gender
+  bodyWeight      Float?
+  weightClass     String
+  federation      String
+  team            String?
+  category        String?
+  isActive        Boolean    @default(true)
+  personalRecords Json       @default("{}")
+  competitions    Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  // Relations
+  registrations   Registration[]
+  results         Result[]
+  weighIns        WeighIn[]
+  attemptResults  AttemptResult[]
+  records         AthleteRecord[]
+  qualifications  AthleteQualification[]
+  competitions_   Competition[]
+  
+  @@map("athletes")
+}
+
+// Registration and Results
+model Registration {
+  id             String            @id @default(cuid())
+  competitionId  String
+  athleteId      String
+  categoryId     String
+  registeredAt   DateTime          @default(now())
+  status         RegistrationStatus @default(PENDING)
+  paymentStatus  PaymentStatus     @default(UNPAID)
+  notes          String?
+  emergencyContact Json?           // JSON object for emergency contact details
+  medicalInfo    Json?             // JSON object for medical information
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  userId         String?
+  
+  competition Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athlete     Athlete        @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  category    CategoryConfig @relation(fields: [categoryId], references: [id])
+  user        User?          @relation(fields: [userId], references: [id])
+  
+  @@unique([competitionId, athleteId])
+  @@map("registrations")
+}
+
+model Result {
+  id            String     @id @default(cuid())
+  competitionId String
+  athleteId     String
+  categoryId    String
+  lifts         Json       // Array of Lift objects
+  totalScore    Float
+  wilksScore    Float?
+  ipfScore      Float?
+  dotsScore     Float?
+  ranking       Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  competition Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athlete     Athlete        @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  category    CategoryConfig @relation(fields: [categoryId], references: [id])
+  
+  @@unique([competitionId, athleteId, categoryId])
+  @@map("results")
+}
+
+// Live Competition Management
+model CompetitionLiveSetup {
+  id               String     @id @default(cuid())
+  competitionId    String     @unique
+  disciplines      Json       // Array of CustomDiscipline objects
+  disciplineOrder  String[]
+  orderMode        OrderMode  @default(CATEGORY)
+  maxAttempts      Json       // Object mapping disciplineId to max attempts
+  lots             Json       // Array of CompetitionLot objects
+  groups           Json       // Array of CompetitionGroup objects
+  mergedCategories Json?      // Array of MergedCategory objects
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  
+  competition   Competition              @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  liveSessions  LiveCompetitionSession[]
+  
+  @@map("competition_live_setups")
+}
+
+model LiveCompetitionSession {
+  id                String        @id @default(cuid())
+  competitionId     String
+  setupId           String
+  currentState      SessionState  @default(SETUP)
+  currentDiscipline String?
+  currentAthleteId  String?
+  currentAttempt    Int?
+  nextUp            Json          // Array of QueueItem objects
+  judgeAssignments  Json          // Array of JudgeAssignment objects
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  competition Competition           @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  setup       CompetitionLiveSetup  @relation(fields: [setupId], references: [id])
+  timer       CompetitionTimer?
+  attemptResults AttemptResult[]
+  
+  @@map("live_competition_sessions")
+}
+
+model JudgeAssignment {
+  id            String     @id @default(cuid())
+  competitionId String
+  judgeId       String
+  sessionId     String?
+  role          JudgeRole  @default(SIDE)
+  position      Int        // 1, 2, or 3
+  isActive      Boolean    @default(true)
+  assignedAt    DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  competition Competition     @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  judge       User            @relation(fields: [judgeId], references: [id])
+  judgeProfile JudgeProfile   @relation(fields: [judgeId], references: [userId])
+  
+  @@map("judge_assignments")
+}
+
+model AttemptResult {
+  id              String     @id @default(cuid())
+  sessionId       String
+  athleteId       String
+  competitionId   String
+  athleteName     String
+  disciplineId    String
+  discipline      String
+  attemptNumber   Int
+  requestedWeight Float
+  actualWeight    Float?
+  weight          Float
+  isValid         Boolean
+  validVotes      Int?
+  totalVotes      Int?
+  startedAt       DateTime
+  completedAt     DateTime?
+  sport           SportType
+  category        String
+  weightCategory  String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  session     LiveCompetitionSession @relation(fields: [sessionId], references: [id])
+  athlete     Athlete                @relation(fields: [athleteId], references: [id])
+  competition Competition            @relation(fields: [competitionId], references: [id])
+  judgeVotes  JudgeVote[]
+  recordsBroken RecordBroken[]
+  
+  @@map("attempt_results")
+}
+
+model JudgeVote {
+  id            String     @id @default(cuid())
+  judgeId       String
+  position      Int
+  vote          VoteType
+  decision      VoteType
+  timestamp     DateTime   @default(now())
+  corrected     Boolean    @default(false)
+  originalVote  VoteType?
+  competitionId String
+  sessionId     String?
+  athleteId     String
+  athleteName   String?
+  discipline    String
+  attemptNumber Int
+  weight        Float?
+  notes         String?
+  attemptResultId String?
+  
+  judge        User          @relation(fields: [judgeId], references: [id])
+  attemptResult AttemptResult? @relation(fields: [attemptResultId], references: [id])
+  
+  @@map("judge_votes")
+}
+
+// Records and Achievements
+model CompetitionRecord {
+  id              String     @id @default(cuid())
+  disciplineId    String
+  discipline      String
+  weight          Float
+  value           Float
+  unit            String
+  athleteName     String
+  athleteId       String
+  competitionId   String
+  competitionName String
+  category        String
+  weightCategory  String
+  ageGroup        String?
+  gender          Gender
+  federation      String?
+  location        String?
+  notes           String?
+  type            RecordType @default(COMPETITION)
+  recordType      RecordLevel @default(COMPETITION)
+  sport           SportType
+  dateSet         DateTime
+  isActive        Boolean    @default(true)
+  isRatified      Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  competition Competition @relation(fields: [competitionId], references: [id])
+  
+  @@map("competition_records")
+}
+
+model RecordBroken {
+  id             String     @id @default(cuid())
+  recordId       String
+  type           RecordType
+  previousRecord Float?
+  previousHolder String?
+  category       String
+  ageGroup       String?
+  competitionId  String
+  athleteId      String
+  athleteName    String
+  disciplineId   String
+  discipline     String
+  weightCategory String
+  weight         Float
+  newWeight      Float
+  previousWeight Float
+  recordType     RecordLevel @default(COMPETITION)
+  improvement    Float
+  sport          SportType
+  timestamp      DateTime
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  attemptResultId String?
+  
+  attemptResult AttemptResult? @relation(fields: [attemptResultId], references: [id])
+  
+  @@map("records_broken")
+}
+
+model AthleteRecord {
+  id             String     @id @default(cuid())
+  athleteId      String
+  sport          SportType
+  discipline     String
+  category       String
+  weightCategory String?
+  value          Float
+  unit           String     @default("kg")
+  competitionId  String
+  dateSet        DateTime
+  isPersonalBest Boolean    @default(false)
+  isSeasonBest   Boolean    @default(false)
+  previousBest   Float?
+  improvement    Float?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  
+  @@map("athlete_records")
+}
+
+model AthleteQualification {
+  id                String     @id @default(cuid())
+  athleteId         String
+  athleteName       String
+  disciplineId      String
+  discipline        String
+  qualifyingWeight  Float
+  qualifyingTotal   Float
+  qualifyingValue   Float
+  achievedValue     Float
+  qualifyingDate    DateTime
+  qualificationDate DateTime
+  competitionId     String
+  competitionName   String
+  competitionLevel  String
+  isValid           Boolean    @default(true)
+  isActive          Boolean    @default(true)
+  isQualified       Boolean    @default(false)
+  expiresAt         DateTime?
+  expiryDate        DateTime?
+  federation        String
+  sport             SportType
+  category          String
+  weightCategory    String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  
+  @@map("athlete_qualifications")
+}
+
+// Weigh-in Management
+model WeighIn {
+  id               String           @id @default(cuid())
+  competitionId    String
+  athleteId        String
+  athleteName      String
+  categoryId       String
+  weightCategory   String
+  bodyWeight       Float
+  weight           Float
+  weighInTime      DateTime         @default(now())
+  isOfficial       Boolean          @default(false)
+  witnessJudgeId   String?
+  notes            String?
+  status           WeighInStatus    @default(PENDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  competition Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athlete     Athlete        @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  category    CategoryConfig @relation(fields: [categoryId], references: [id])
+  
+  @@map("weigh_ins")
+}
+
+// Timer and Session Management
+model CompetitionTimer {
+  id            String     @id @default(cuid())
+  sessionId     String     @unique
+  type          TimerType
+  duration      Int        // seconds
+  startTime     DateTime?
+  endTime       DateTime?
+  isActive      Boolean    @default(false)
+  isPaused      Boolean    @default(false)
+  remainingTime Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  session LiveCompetitionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@map("competition_timers")
+}
+
+// System Management
+model BackupData {
+  id                String       @id @default(cuid())
+  competitionId     String?
+  name              String
+  type              BackupType   @default(FULL)
+  description       String?
+  timestamp         DateTime     @default(now())
+  status            BackupStatus @default(PENDING)
+  expiresAt         DateTime
+  createdBy         String
+  isEncrypted       Boolean      @default(false)
+  encryptionMethod  String?
+  compressionRatio  Float?
+  checksum          String?
+  data              Json         // Backup data as JSON
+  size              BigInt
+  dataSize          BigInt
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime?
+  
+  competition Competition? @relation(fields: [competitionId], references: [id])
+  creator     User         @relation("BackupCreator", fields: [createdBy], references: [id])
+  
+  @@map("backup_data")
+}
+
+model SystemNotification {
+  id            String             @id @default(cuid())
+  userId        String?            // null means global notification
+  competitionId String?
+  type          NotificationType   @default(INFO)
+  title         String
+  message       String
+  isRead        Boolean            @default(false)
+  priority      NotificationPriority @default(MEDIUM)
+  expiresAt     DateTime?
+  createdAt     DateTime           @default(now())
+  
+  user        User?        @relation(fields: [userId], references: [id])
+  competition Competition? @relation(fields: [competitionId], references: [id])
+  
+  @@map("system_notifications")
+}
+
+model SystemConfig {
+  id          String     @id @default(cuid())
+  key         String     @unique
+  value       Json
+  type        ConfigType @default(STRING)
+  description String?
+  isEditable  Boolean    @default(true)
+  updatedAt   DateTime   @updatedAt
+  updatedBy   String
+  
+  updater User @relation("ConfigUpdater", fields: [updatedBy], references: [id])
+  
+  @@map("system_configs")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  ORGANIZER
+  JUDGE
+  ATHLETE
+  VIEWER
+}
+
+enum Gender {
+  M
+  F
+}
+
+enum SportType {
+  POWERLIFTING
+  STRONGMAN
+  WEIGHTLIFTING
+  STREETLIFTING
+  CROSSFIT
+}
+
+enum CompetitionStatus {
+  DRAFT
+  ACTIVE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ScoringSystem {
+  IPF
+  WILKS
+  DOTS
+}
+
+enum RegistrationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REJECTED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  PENDING
+}
+
+enum OrderMode {
+  CATEGORY
+  WEIGHT
+}
+
+enum SessionState {
+  SETUP
+  ACTIVE
+  PAUSED
+  DISCIPLINE_BREAK
+  COMPLETED
+}
+
+enum JudgeRole {
+  HEAD
+  SIDE
+}
+
+enum VoteType {
+  VALID
+  INVALID
+}
+
+enum RecordType {
+  COMPETITION
+  NATIONAL
+  WORLD
+  REGIONAL
+  LOCAL
+}
+
+enum RecordLevel {
+  COMPETITION
+  NATIONAL
+  WORLD
+  REGIONAL
+  LOCAL
+}
+
+enum WeighInStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TimerType {
+  ATTEMPT
+  BREAK
+  DISCIPLINE_CHANGE
+}
+
+enum BackupType {
+  FULL
+  INCREMENTAL
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  OBJECT
+}
