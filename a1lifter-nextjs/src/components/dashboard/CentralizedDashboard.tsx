@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useEvents } from "@/hooks/api/use-events"
+import { useDashboardStats } from "@/hooks/api/use-dashboard"
+import { useRealtimeDashboard } from "@/hooks/api/use-realtime"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -32,34 +33,13 @@ interface QuickAction {
   disabled?: boolean
 }
 
-interface DashboardStats {
-  totalAthletes: number
-  activeCompetitions: number
-  todayResults: number
-  recordsBroken: number
-}
-
 export function CentralizedDashboard() {
   const { data: session } = useSession()
   const { data: events, isLoading: eventsLoading } = useEvents()
-  const [stats, setStats] = useState<DashboardStats>({
-    totalAthletes: 0,
-    activeCompetitions: 0,
-    todayResults: 0,
-    recordsBroken: 0
-  })
-
-  useEffect(() => {
-    if (!eventsLoading && events) {
-      const activeComps = events.filter((e) => e.status === 'IN_PROGRESS').length
-      setStats({
-        totalAthletes: 247, // Mock data
-        activeCompetitions: activeComps,
-        todayResults: 23, // Mock data
-        recordsBroken: 5 // Mock data
-      })
-    }
-  }, [events, eventsLoading])
+  const { data: stats, isLoading: statsLoading } = useDashboardStats()
+  
+  // Enable real-time updates for dashboard
+  useRealtimeDashboard()
 
   const quickActions: QuickAction[] = [
     {
@@ -151,11 +131,17 @@ export function CentralizedDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalAthletes}</div>
-                <p className="text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3 inline mr-1" />
-                  +15% from last month
-                </p>
+                {statsLoading ? (
+                  <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats?.totalAthletes || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      <TrendingUp className="h-3 w-3 inline mr-1" />
+                      Active in platform
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
             
@@ -165,11 +151,17 @@ export function CentralizedDashboard() {
                 <Trophy className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.activeCompetitions}</div>
-                <p className="text-xs text-muted-foreground">
-                  <Activity className="h-3 w-3 inline mr-1" />
-                  Currently running
-                </p>
+                {statsLoading ? (
+                  <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats?.activeCompetitions || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      <Activity className="h-3 w-3 inline mr-1" />
+                      Currently running
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
             
@@ -179,11 +171,17 @@ export function CentralizedDashboard() {
                 <Award className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.todayResults}</div>
-                <p className="text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3 inline mr-1" />
-                  Recorded today
-                </p>
+                {statsLoading ? (
+                  <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats?.todayResults || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 inline mr-1" />
+                      Recorded today
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
             
@@ -193,11 +191,17 @@ export function CentralizedDashboard() {
                 <Zap className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.recordsBroken}</div>
-                <p className="text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3 inline mr-1" />
-                  This week
-                </p>
+                {statsLoading ? (
+                  <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stats?.recordsBroken || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      <TrendingUp className="h-3 w-3 inline mr-1" />
+                      This week
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

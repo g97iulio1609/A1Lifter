@@ -1,14 +1,33 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { useEvents } from "@/hooks/api/use-events"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Users, Trophy, Plus } from "lucide-react"
+import { useMemo } from "react"
 
 export default function DashboardPage() {
   const { data: session } = useSession()
   const { data: events, isLoading, error } = useEvents()
+  const router = useRouter()
+
+  const stats = useMemo(() => {
+    if (!events) return {
+      totalEvents: 0,
+      activeCompetitions: 0,
+      totalAthletes: 0,
+      totalRegistrations: 0
+    }
+
+    return {
+      totalEvents: events.length,
+      activeCompetitions: events.filter(e => e.status === 'IN_PROGRESS').length,
+      totalAthletes: 0, // Will be calculated from registrations
+      totalRegistrations: 0 // Will be calculated from registrations
+    }
+  }, [events])
 
   if (!session) {
     return <div>Loading...</div>
@@ -45,49 +64,38 @@ export default function DashboardPage() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{events?.length || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  +2 from last month
-                </p>
+                <div className="text-2xl font-bold">{stats.totalEvents}</div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Competitions</CardTitle>
                 <Trophy className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">1</div>
-                <p className="text-xs text-muted-foreground">
-                  Currently running
-                </p>
+                <div className="text-2xl font-bold">{stats.activeCompetitions}</div>
+                <p className="text-xs text-muted-foreground">Currently running</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Athletes</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">247</div>
-                <p className="text-xs text-muted-foreground">
-                  +15% from last month
-                </p>
+                <div className="text-2xl font-bold">{stats.totalAthletes}</div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Registrations</CardTitle>
                 <Plus className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">89</div>
-                <p className="text-xs text-muted-foreground">
-                  This month
-                </p>
+                <div className="text-2xl font-bold">{stats.totalRegistrations}</div>
               </CardContent>
             </Card>
           </div>
@@ -96,7 +104,7 @@ export default function DashboardPage() {
           <div className="mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Recent Events</h2>
-              <Button>
+              <Button onClick={() => router.push('/events/create')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Event
               </Button>
@@ -156,7 +164,7 @@ export default function DashboardPage() {
                   <p className="text-gray-600 text-center mb-4">
                     Get started by creating your first competition event.
                   </p>
-                  <Button>
+                  <Button onClick={() => router.push('/events/create')}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Your First Event
                   </Button>

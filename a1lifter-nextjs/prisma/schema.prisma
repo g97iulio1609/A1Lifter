@@ -1,39 +1,33 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// Auth Models
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String?
-  name          String?
-  image         String?
-  role          UserRole  @default(ATHLETE)
-  emailVerified DateTime?
-  isActive      Boolean   @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations
+  id               String            @id @default(cuid())
+  email            String            @unique
+  name             String?
+  image            String?
+  role             UserRole          @default(ATHLETE)
+  emailVerified    DateTime?
+  isActive         Boolean           @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  password         String?
   accounts         Account[]
-  sessions         UserSession[]
-  organizedEvents  Event[]           @relation("EventOrganizer")
-  registrations    Registration[]
   attempts         Attempt[]
+  organizedEvents  Event[]           @relation("EventOrganizer")
   judgeAssignments JudgeAssignment[]
   notifications    Notification[]
-  
+  registrations    Registration[]
+  sessions         UserSession[]
+
   @@index([email])
   @@index([role])
   @@index([isActive])
@@ -46,15 +40,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -79,30 +72,27 @@ model VerificationToken {
   @@map("verificationtokens")
 }
 
-// Core Domain Models
 model Event {
-  id          String      @id @default(cuid())
-  name        String
-  description String?     @db.Text
-  sport       Sport
-  status      EventStatus @default(PLANNED)
-  startDate   DateTime
-  endDate     DateTime
-  location    String
-  maxAthletes Int?
-  organizerId String
-  isDeleted   Boolean     @default(false)
-  deletedAt   DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  organizer     User           @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Restrict)
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  sport         Sport
+  status        EventStatus    @default(PLANNED)
+  startDate     DateTime
+  endDate       DateTime
+  location      String
+  maxAthletes   Int?
+  organizerId   String
+  isDeleted     Boolean        @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  attempts      Attempt[]
   categories    Category[]
   sessions      EventSession[]
-  registrations Registration[]
-  attempts      Attempt[]
+  organizer     User           @relation("EventOrganizer", fields: [organizerId], references: [id])
   records       Record[]
+  registrations Registration[]
 
   @@index([organizerId])
   @@index([sport])
@@ -113,17 +103,15 @@ model Event {
 }
 
 model EventSession {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   eventId   String
   startTime DateTime
   endTime   DateTime?
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([startTime])
@@ -131,23 +119,21 @@ model EventSession {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String
-  gender    Gender
-  minWeight Float?
-  maxWeight Float?
-  ageMin    Int?
-  ageMax    Int?
-  eventId   String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  registrations Registration[]
+  id            String         @id @default(cuid())
+  name          String
+  gender        Gender
+  minWeight     Float?
+  maxWeight     Float?
+  ageMin        Int?
+  ageMax        Int?
+  eventId       String
+  order         Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   attempts      Attempt[]
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   records       Record[]
+  registrations Registration[]
 
   @@unique([eventId, name])
   @@index([eventId])
@@ -162,17 +148,15 @@ model Registration {
   categoryId   String
   status       RegistrationStatus @default(PENDING)
   bodyWeight   Float?
-  lot          Int?               // Draw number
-  platform     String?            // Platform assignment
-  notes        String?            @db.Text
+  lot          Int?
+  platform     String?
+  notes        String?
   registeredAt DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
-
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  attempts Attempt[]
+  attempts     Attempt[]
+  category     Category           @relation(fields: [categoryId], references: [id])
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@index([userId])
@@ -189,21 +173,19 @@ model Attempt {
   categoryId     String
   registrationId String
   lift           LiftType
-  attemptNumber  Int           // 1, 2, or 3
+  attemptNumber  Int
   weight         Float
   result         AttemptResult @default(PENDING)
-  judgeScores    Json?         // Store individual judge scores
-  videoUrl       String?       // Link to video recording
-  notes          String?       @db.Text
+  judgeScores    Json?
+  videoUrl       String?
+  notes          String?
   timestamp      DateTime      @default(now())
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-
-  // Relations
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  category       Category      @relation(fields: [categoryId], references: [id])
+  event          Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId, lift, attemptNumber])
   @@index([userId])
@@ -220,12 +202,10 @@ model JudgeAssignment {
   userId    String
   eventId   String
   role      JudgeRole
-  platform  String?   // Platform assignment
+  platform  String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
-  // Relations
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@index([userId])
@@ -234,22 +214,20 @@ model JudgeAssignment {
 }
 
 model Record {
-  id         String     @id @default(cuid())
-  eventId    String
-  categoryId String
-  lift       LiftType
-  weight     Float
-  userId     String     // User who set the record
-  userName   String     // Denormalized for performance
-  recordType RecordType
-  previousRecord Float?  // Previous record value
-  setAt      DateTime   @default(now())
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  
-  // Relations
-  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  id             String     @id @default(cuid())
+  eventId        String
+  categoryId     String
+  lift           LiftType
+  weight         Float
+  userId         String
+  userName       String
+  recordType     RecordType
+  previousRecord Float?
+  setAt          DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  category       Category   @relation(fields: [categoryId], references: [id])
+  event          Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([categoryId])
@@ -258,20 +236,17 @@ model Record {
   @@map("records")
 }
 
-// Notification system for real-time updates
 model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  type        NotificationType
-  title       String
-  message     String           @db.Text
-  data        Json?            // Additional payload
-  isRead      Boolean          @default(false)
-  readAt      DateTime?
-  createdAt   DateTime         @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
@@ -279,7 +254,6 @@ model Notification {
   @@map("notifications")
 }
 
-// Enums
 enum UserRole {
   ADMIN
   ORGANIZER
@@ -324,11 +298,9 @@ enum LiftType {
   SNATCH
   CLEAN_AND_JERK
   OVERHEAD_PRESS
-  // Strongman lifts
   ATLAS_STONES
   LOG_PRESS
   TIRE_FLIP
-  // CrossFit movements
   THRUSTER
   PULL_UP
   BOX_JUMP

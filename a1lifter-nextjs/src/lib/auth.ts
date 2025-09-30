@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import * as bcrypt from "bcryptjs"
+import { UserRole } from "@prisma/client"
 import { prisma } from "./db"
 
 export const authOptions: NextAuthOptions = {
@@ -67,7 +68,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.sub!
-        session.user.role = token.role as string
+        session.user.role = token.role as UserRole
       }
       return session
     },

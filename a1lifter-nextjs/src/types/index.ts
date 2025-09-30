@@ -34,6 +34,8 @@ export interface BaseAttempt {
   attemptNumber: number
   weight: number
   result: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export type UserWithRelations = BaseUser & {
@@ -111,10 +113,12 @@ export interface EventFormData {
   name: string
   description?: string
   sport: string
+  status?: string
   startDate: string
   endDate: string
   location: string
   maxAthletes?: number
+  organizerId?: string
 }
 
 export interface CategoryFormData {
