@@ -13,13 +13,14 @@ async function main() {
 
   // Create Admin User
   console.log('👤 Creating admin user...')
-  const adminPassword = await bcrypt.hash('Admin123!', 10)
-  
+  const hashedPassword = await bcrypt.hash('Admin123!', 10)
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin@a1lifter.com' },
     update: {},
     create: {
       email: 'admin@a1lifter.com',
+      password: hashedPassword,
       name: 'Admin User',
       role: 'ADMIN',
       emailVerified: new Date(),
@@ -35,6 +36,7 @@ async function main() {
     update: {},
     create: {
       email: 'organizer@a1lifter.com',
+      password: hashedPassword,
       name: 'Event Organizer',
       role: 'ORGANIZER',
       emailVerified: new Date(),
@@ -51,6 +53,7 @@ async function main() {
       update: {},
       create: {
         email: 'judge1@a1lifter.com',
+        password: hashedPassword,
         name: 'Head Judge',
         role: 'JUDGE',
         emailVerified: new Date(),
@@ -62,6 +65,7 @@ async function main() {
       update: {},
       create: {
         email: 'judge2@a1lifter.com',
+        password: hashedPassword,
         name: 'Side Judge 1',
         role: 'JUDGE',
         emailVerified: new Date(),
@@ -73,6 +77,7 @@ async function main() {
       update: {},
       create: {
         email: 'judge3@a1lifter.com',
+        password: hashedPassword,
         name: 'Side Judge 2',
         role: 'JUDGE',
         emailVerified: new Date(),
@@ -90,6 +95,7 @@ async function main() {
       update: {},
       create: {
         email: 'athlete1@a1lifter.com',
+        password: hashedPassword,
         name: 'John Strongman',
         role: 'ATHLETE',
         emailVerified: new Date(),
@@ -101,6 +107,7 @@ async function main() {
       update: {},
       create: {
         email: 'athlete2@a1lifter.com',
+        password: hashedPassword,
         name: 'Jane Powerlifter',
         role: 'ATHLETE',
         emailVerified: new Date(),
@@ -112,6 +119,7 @@ async function main() {
       update: {},
       create: {
         email: 'athlete3@a1lifter.com',
+        password: hashedPassword,
         name: 'Mike Deadlifter',
         role: 'ATHLETE',
         emailVerified: new Date(),
@@ -123,6 +131,7 @@ async function main() {
       update: {},
       create: {
         email: 'athlete4@a1lifter.com',
+        password: hashedPassword,
         name: 'Sarah Weightlifter',
         role: 'ATHLETE',
         emailVerified: new Date(),

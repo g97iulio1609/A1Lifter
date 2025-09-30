@@ -2,13 +2,8 @@ import { NextAuthOptions } from "next-auth"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
-import { createClient } from "@supabase/supabase-js"
+import * as bcrypt from "bcryptjs"
 import { prisma } from "./db"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -21,40 +16,41 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials')
           return null
         }
 
-        // Check if user exists in Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        })
+        console.log('Attempting login for:', credentials.email)
 
-        if (authError || !authData.user) {
-          return null
-        }
-
-        // Get user from our database
+        // Get user from database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email }
         })
 
-        if (!user) {
-          // Create user if doesn't exist
-          const newUser = await prisma.user.create({
-            data: {
-              email: credentials.email,
-              name: authData.user.user_metadata?.full_name || authData.user.email,
-              role: 'ATHLETE',
-            }
-          })
-          return {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-            role: newUser.role,
-          }
+        console.log('User found:', !!user, 'Has password:', !!user?.password)
+
+        if (!user || !user.password) {
+          console.log('User not found or no password')
+          return null
         }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+
+        console.log('Password valid:', isPasswordValid)
+
+        if (!isPasswordValid) {
+          console.log('Invalid password')
+          return null
+        }
+
+        // Update last login
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() }
+        })
+
+        console.log('Login successful for:', user.email)
 
         return {
           id: user.id,

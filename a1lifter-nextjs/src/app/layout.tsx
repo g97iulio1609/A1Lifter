@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { SessionProvider } from "next-auth/react";
-import { QueryProvider } from "@/components/providers/query-provider";
-import { Toaster } from "sonner";
+import { Providers } from "@/components/providers/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,12 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <QueryProvider>
-          <SessionProvider>
-            {children}
-            <Toaster />
-          </SessionProvider>
-        </QueryProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
