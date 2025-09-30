@@ -139,7 +139,7 @@ export function CentralizedDashboard() {
               Welcome back, {session.user.name}!
             </h2>
             <p className="text-gray-600">
-              Here's what's happening with your competitions today.
+              Here&apos;s what&apos;s happening with your competitions today.
             </p>
           </div>
 
@@ -175,7 +175,7 @@ export function CentralizedDashboard() {
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Results</CardTitle>
+                <CardTitle className="text-sm font-medium">Today&apos;s Results</CardTitle>
                 <Award className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>

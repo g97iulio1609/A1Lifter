@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signIn, getSession } from "next-auth/react"
+import { signIn } from 'next-auth/react'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,7 +32,8 @@ export default function SignIn() {
       } else {
         router.push("/dashboard")
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Sign in error:', err)
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

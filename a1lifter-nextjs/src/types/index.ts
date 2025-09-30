@@ -1,32 +1,57 @@
-// Placeholder types until Prisma client is generated
-export type UserWithRelations = {
+// Type-safe domain types (will be replaced by Prisma generated types after db:push)
+
+export interface BaseUser {
   id: string
   email: string
-  name?: string
+  name: string | null
   role: string
-  accounts: any[]
-  sessions: any[]
-  organizedEvents: any[]
-  registrations: any[]
-  attempts: any[]
-  judgeAssignments: any[]
 }
 
-export type EventWithRelations = {
+export interface BaseEvent {
   id: string
   name: string
-  description?: string
+  description: string | null
   sport: string
   status: string
   startDate: Date
   endDate: Date
   location: string
-  organizer: any
-  categories: any[]
-  sessions: any[]
-  registrations: any[]
-  attempts: any[]
-  records: any[]
+}
+
+export interface BaseCategory {
+  id: string
+  name: string
+  gender: string
+  minWeight: number | null
+  maxWeight: number | null
+}
+
+export interface BaseAttempt {
+  id: string
+  userId: string
+  eventId: string
+  lift: string
+  attemptNumber: number
+  weight: number
+  result: string
+}
+
+export type UserWithRelations = BaseUser & {
+  accounts: unknown[]
+  sessions: unknown[]
+  organizedEvents: BaseEvent[]
+  registrations: unknown[]
+  attempts: BaseAttempt[]
+  judgeAssignments: unknown[]
+}
+
+export type EventWithRelations = BaseEvent & {
+  organizer: BaseUser
+  categories: BaseCategory[]
+  sessions: unknown[]
+  registrations: unknown[]
+  attempts: BaseAttempt[]
+  records: unknown[]
 }
 
 export type RegistrationWithRelations = {
@@ -35,30 +60,25 @@ export type RegistrationWithRelations = {
   eventId: string
   categoryId: string
   status: string
-  user: any
-  event: any
-  category: any
-  attempts: any[]
+  user: BaseUser
+  event: BaseEvent
+  category: BaseCategory
+  attempts: BaseAttempt[]
 }
 
-export type AttemptWithRelations = {
-  id: string
-  userId: string
-  eventId: string
-  categoryId: string
-  registrationId: string
-  lift: string
-  attemptNumber: number
-  weight: number
-  result: string
-  user: any
-  event: any
-  category: any
-  registration: any
+export type AttemptWithRelations = BaseAttempt & {
+  user: BaseUser
+  event: BaseEvent
+  category: BaseCategory
+  registration: {
+    id: string
+    userId: string
+    eventId: string
+  }
 }
 
 // API Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string

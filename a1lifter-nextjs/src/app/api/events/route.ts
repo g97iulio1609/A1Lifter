@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { createServerSupabaseClient } from "@/lib/supabase"
+// TODO: Re-enable when implementing full Supabase RLS
+// import { createServerSupabaseClient } from "@/lib/supabase"
 import { authOptions } from "@/lib/auth"
 
 export async function GET() {
@@ -11,7 +12,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const supabase = await createServerSupabaseClient()
+    // TODO: Add Supabase RLS when authentication is fully integrated
+    // const supabase = await createServerSupabaseClient()
     
     // For now, return mock data since we haven't set up the database yet
     const mockEvents = [
@@ -61,7 +63,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const supabase = await createServerSupabaseClient()
+    // TODO: Add Supabase RLS when authentication is fully integrated
+    // const supabase = await createServerSupabaseClient()
     
     // Mock creation for now
     const newEvent = {
