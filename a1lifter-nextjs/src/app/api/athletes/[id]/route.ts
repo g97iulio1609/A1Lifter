@@ -53,6 +53,14 @@ export async function GET(
   }
 }
 
+type AthleteUpdatePayload = {
+  name?: string | null
+  email?: string
+  isActive?: boolean
+  role?: string
+  password?: string | null
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -74,10 +82,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const body = await request.json()
+  const body = await request.json()
 
-    // Prepare update data
-    const updateData: any = {}
+  // Prepare update data
+  const updateData: AthleteUpdatePayload = {}
 
     if (body.name !== undefined) updateData.name = body.name
     if (body.email !== undefined) updateData.email = body.email

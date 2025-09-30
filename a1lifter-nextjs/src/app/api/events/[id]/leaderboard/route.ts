@@ -19,7 +19,11 @@ export async function GET(
     const categoryId = searchParams.get("categoryId")
 
     // Get all good attempts for the event
-    const where: any = {
+    const where: {
+      eventId: string
+      result: "GOOD"
+      categoryId?: string
+    } = {
       eventId,
       result: "GOOD",
     }

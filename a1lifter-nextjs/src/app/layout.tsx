@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers/providers";
-import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 export const metadata: Metadata = {
   title: "A1Lifter - Competition Management Platform",
@@ -17,8 +17,7 @@ export default function RootLayout({
     <html lang="en" className="light">
       <body className="antialiased bg-white text-gray-900">
         <Providers>
-          {children}
-          <Toaster />
+          <AppLayout>{children}</AppLayout>
         </Providers>
       </body>
     </html>

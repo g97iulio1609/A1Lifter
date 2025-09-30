@@ -26,6 +26,20 @@ export interface JudgeAttemptData {
   notes?: string
 }
 
+export interface LeaderboardEntry {
+  userId: string
+  userName: string
+  categoryId: string
+  categoryName: string
+  gender: string
+  bodyWeight: number
+  lifts: Record<string, number>
+  total: number
+  attempts: Array<Record<string, unknown>>
+  points?: number
+  sinclair?: number
+}
+
 // Fetch attempts for an event
 export function useAttempts(eventId: string | undefined) {
   return useQuery({
@@ -209,7 +223,7 @@ export function useDeleteAttempt() {
 export function useLeaderboard(eventId: string | undefined, categoryId?: string) {
   return useQuery({
     queryKey: ["leaderboard", eventId, categoryId],
-    queryFn: async () => {
+    queryFn: async (): Promise<LeaderboardEntry[]> => {
       if (!eventId) throw new Error("Event ID is required")
       
       const params = new URLSearchParams()

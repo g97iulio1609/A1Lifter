@@ -18,8 +18,8 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get("userId")
 
-    // Build query
-    const where: any = { eventId }
+  // Build query
+  const where: { eventId: string; userId?: string } = { eventId }
     if (userId) {
       where.userId = userId
     }

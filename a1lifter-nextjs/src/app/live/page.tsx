@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { useEvents } from "@/hooks/api/use-events"
 import { useAttempts } from "@/hooks/api/use-attempts"
-import { useLeaderboard } from "@/hooks/api/use-attempts"
+import { useLeaderboard, LeaderboardEntry } from "@/hooks/api/use-attempts"
 import { useRealtimeAttempts } from "@/hooks/api/use-realtime"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -132,7 +132,7 @@ export default function LivePage() {
                     </div>
                   ) : leaderboard && leaderboard.length > 0 ? (
                     <div className="space-y-3">
-                      {leaderboard.map((athlete: any, index: number) => (
+                      {leaderboard.map((athlete: LeaderboardEntry, index: number) => (
                         <div
                           key={`${athlete.userId}-${athlete.categoryId}`}
                           className={`flex items-center justify-between p-4 rounded-lg border ${
@@ -157,7 +157,7 @@ export default function LivePage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-2xl font-bold">{athlete.total}kg</div>
+                            <div className="text-2xl font-bold">{athlete.total.toFixed(1)}kg</div>
                             <div className="text-xs text-gray-600">
                               {Object.entries(athlete.lifts).map(([lift, weight]) => (
                                 <span key={lift} className="mr-2">

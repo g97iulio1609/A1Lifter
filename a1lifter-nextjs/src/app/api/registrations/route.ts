@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const eventId = searchParams.get("eventId")
 
-    // Build query
-    const where: any = {}
+  // Build query
+  const where: { eventId?: string } = {}
     if (eventId) {
       where.eventId = eventId
     }

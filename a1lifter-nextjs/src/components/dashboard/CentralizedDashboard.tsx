@@ -1,6 +1,7 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { useEvents } from "@/hooks/api/use-events"
 import { useDashboardStats } from "@/hooks/api/use-dashboard"
 import { useRealtimeDashboard } from "@/hooks/api/use-realtime"
@@ -34,6 +35,7 @@ interface QuickAction {
 }
 
 export function CentralizedDashboard() {
+  const router = useRouter()
   const { data: session } = useSession()
   const { data: events, isLoading: eventsLoading } = useEvents()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
@@ -214,7 +216,7 @@ export function CentralizedDashboard() {
                 <Card 
                   key={action.title}
                   className="hover:shadow-md transition-shadow cursor-pointer group"
-                  onClick={() => window.location.href = action.href}
+                  onClick={() => router.push(action.href)}
                 >
                   <CardContent className="p-4 text-center">
                     <div className={`${action.color} rounded-lg p-3 mb-3 mx-auto w-fit group-hover:scale-110 transition-transform`}>
@@ -232,7 +234,7 @@ export function CentralizedDashboard() {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold text-gray-900">Recent Events</h3>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => router.push("/events")}>
                 View All
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>

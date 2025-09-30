@@ -16,6 +16,7 @@ export interface BaseEvent {
   startDate: Date
   endDate: Date
   location: string
+  maxAthletes?: number | null
 }
 
 export interface BaseCategory {

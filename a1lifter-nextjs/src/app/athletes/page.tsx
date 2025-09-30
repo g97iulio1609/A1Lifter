@@ -65,10 +65,12 @@ export default function AthletesPage() {
                 <p className="text-sm text-gray-600">Manage athlete profiles and registrations</p>
               </div>
             </div>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Athlete
-            </Button>
+            <Link href="/athletes/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Athlete
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -180,12 +182,16 @@ export default function AthletesPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        View Profile
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        Stats
-                      </Button>
+                      <Link href={`/athletes/${athlete.id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full">
+                          View Profile
+                        </Button>
+                      </Link>
+                      <Link href={`/athletes/${athlete.id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full">
+                          Stats
+                        </Button>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>

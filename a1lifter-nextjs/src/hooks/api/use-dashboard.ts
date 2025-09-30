@@ -32,7 +32,7 @@ export function useDashboardStats() {
   })
 }
 
-export interface Record {
+export interface CompetitionRecord {
   id: string
   eventId: string
   categoryId: string
@@ -55,7 +55,7 @@ export interface Record {
 export function useRecentRecords(limit: number = 10) {
   return useQuery({
     queryKey: ["records", "recent", limit],
-    queryFn: async (): Promise<Record[]> => {
+    queryFn: async (): Promise<CompetitionRecord[]> => {
       const response = await fetch(`${API_BASE}/records/recent?limit=${limit}`)
       if (!response.ok) {
         throw new Error("Failed to fetch recent records")
@@ -70,7 +70,7 @@ export function useRecentRecords(limit: number = 10) {
 export function useEventRecords(eventId: string | undefined) {
   return useQuery({
     queryKey: ["records", eventId],
-    queryFn: async (): Promise<Record[]> => {
+    queryFn: async (): Promise<CompetitionRecord[]> => {
       if (!eventId) throw new Error("Event ID is required")
       
       const response = await fetch(`${API_BASE}/events/${eventId}/records`)
@@ -89,7 +89,7 @@ export interface Notification {
   type: string
   title: string
   message: string
-  data: any
+  data: Record<string, unknown> | null
   isRead: boolean
   readAt: Date | null
   createdAt: Date
