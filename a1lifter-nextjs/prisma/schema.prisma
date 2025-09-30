@@ -19,6 +19,8 @@ model User {
   image         String?
   role          UserRole  @default(ATHLETE)
   emailVerified DateTime?
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -29,7 +31,11 @@ model User {
   registrations    Registration[]
   attempts         Attempt[]
   judgeAssignments JudgeAssignment[]
+  notifications    Notification[]
   
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -76,7 +82,7 @@ model VerificationToken {
 model Event {
   id          String      @id @default(cuid())
   name        String
-  description String?
+  description String?     @db.Text
   sport       Sport
   status      EventStatus @default(PLANNED)
   startDate   DateTime
@@ -84,17 +90,24 @@ model Event {
   location    String
   maxAthletes Int?
   organizerId String
+  isDeleted   Boolean     @default(false)
+  deletedAt   DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   // Relations
-  organizer     User           @relation("EventOrganizer", fields: [organizerId], references: [id])
+  organizer     User           @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Restrict)
   categories    Category[]
   sessions      EventSession[]
   registrations Registration[]
   attempts      Attempt[]
   records       Record[]
 
+  @@index([organizerId])
+  @@index([sport])
+  @@index([status])
+  @@index([startDate])
+  @@index([isDeleted])
   @@map("events")
 }
 
@@ -104,12 +117,15 @@ model EventSession {
   eventId   String
   startTime DateTime
   endTime   DateTime?
+  order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  @@index([eventId])
+  @@index([startTime])
   @@map("event_sessions")
 }
 
@@ -122,6 +138,7 @@ model Category {
   ageMin    Int?
   ageMax    Int?
   eventId   String
+  order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -131,6 +148,9 @@ model Category {
   attempts      Attempt[]
   records       Record[]
 
+  @@unique([eventId, name])
+  @@index([eventId])
+  @@index([gender])
   @@map("categories")
 }
 
@@ -141,16 +161,23 @@ model Registration {
   categoryId   String
   status       RegistrationStatus @default(PENDING)
   bodyWeight   Float?
+  lot          Int?               // Draw number
+  platform     String?            // Platform assignment
+  notes        String?            @db.Text
   registeredAt DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
   // Relations
-  user     User     @relation(fields: [userId], references: [id])
-  event    Event    @relation(fields: [eventId], references: [id])
-  category Category @relation(fields: [categoryId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   attempts Attempt[]
 
   @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([categoryId])
+  @@index([status])
   @@map("registrations")
 }
 
@@ -161,52 +188,94 @@ model Attempt {
   categoryId     String
   registrationId String
   lift           LiftType
-  attemptNumber  Int
+  attemptNumber  Int           // 1, 2, or 3
   weight         Float
   result         AttemptResult @default(PENDING)
-  judgeScores    Json? // Store individual judge scores
+  judgeScores    Json?         // Store individual judge scores
+  videoUrl       String?       // Link to video recording
+  notes          String?       @db.Text
   timestamp      DateTime      @default(now())
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   // Relations
-  user         User         @relation(fields: [userId], references: [id])
-  event        Event        @relation(fields: [eventId], references: [id])
-  category     Category     @relation(fields: [categoryId], references: [id])
-  registration Registration @relation(fields: [registrationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId, lift, attemptNumber])
+  @@index([userId])
+  @@index([eventId])
+  @@index([categoryId])
+  @@index([registrationId])
+  @@index([result])
+  @@index([timestamp])
   @@map("attempts")
 }
 
 model JudgeAssignment {
-  id      String @id @default(cuid())
-  userId  String
-  eventId String
-  role    JudgeRole
+  id        String    @id @default(cuid())
+  userId    String
+  eventId   String
+  role      JudgeRole
+  platform  String?   // Platform assignment
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Relations
-  user  User  @relation(fields: [userId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
   @@map("judge_assignments")
 }
 
 model Record {
-  id         String   @id @default(cuid())
+  id         String     @id @default(cuid())
   eventId    String
   categoryId String
   lift       LiftType
   weight     Float
-  userId     String
+  userId     String     // User who set the record
+  userName   String     // Denormalized for performance
   recordType RecordType
-  setAt      DateTime @default(now())
+  previousRecord Float?  // Previous record value
+  setAt      DateTime   @default(now())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
   
   // Relations
-  event    Event    @relation(fields: [eventId], references: [id])
-  category Category @relation(fields: [categoryId], references: [id])
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
+  @@index([eventId])
+  @@index([categoryId])
+  @@index([lift])
+  @@index([recordType])
   @@map("records")
+}
+
+// Notification system for real-time updates
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  data        Json?            // Additional payload
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 // Enums
@@ -281,4 +350,13 @@ enum RecordType {
   EVENT_RECORD
   COMPETITION_RECORD
   PERSONAL_RECORD
+}
+
+enum NotificationType {
+  REGISTRATION_APPROVED
+  REGISTRATION_REJECTED
+  ATTEMPT_UPCOMING
+  RESULT_POSTED
+  EVENT_UPDATE
+  SYSTEM_ANNOUNCEMENT
 }
