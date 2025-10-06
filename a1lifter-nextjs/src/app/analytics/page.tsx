@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ResponsiveTable } from "@/components/ui/responsive-table"
+import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts"
 import {
   BarChart3,
   Users,
@@ -217,6 +218,11 @@ export default function AnalyticsPage() {
               </ul>
             </CardContent>
           </Card>
+        </section>
+
+        {/* Advanced Analytics Charts */}
+        <section className="mt-8">
+          <AnalyticsCharts />
         </section>
 
         <section className="mt-8">
