@@ -9,6 +9,7 @@ A modern, production-ready platform for managing multisport strength competition
 
 ## ✨ Features
 
+### Core Features
 - 🏆 Multi-sport competition management
 - 👥 Role-based access control (Admin, Organizer, Judge, Athlete)
 - 📝 Online registration system with approval workflow
@@ -18,6 +19,15 @@ A modern, production-ready platform for managing multisport strength competition
 - 🔐 Secure authentication with NextAuth
 - 🗄️ PostgreSQL database with Prisma ORM
 - 🚀 Deployed on Vercel with Supabase backend
+
+### 🎯 Milestone 5: Advanced Features (NEW!)
+- 🎥 **Video Upload** - Upload videos or add URLs for attempt recordings
+- 📡 **Live Streaming** - Embed YouTube, Twitch, Vimeo streams for events
+- 📈 **Advanced Analytics** - Interactive charts with Chart.js (line, bar, doughnut)
+- 🌐 **Internationalization** - Multi-language support (en, it, es, fr, de)
+- 📧 **Email Notifications** - Automated emails for registrations, attempts, and results
+
+> See [MILESTONE_5_IMPLEMENTATION.md](MILESTONE_5_IMPLEMENTATION.md) for detailed documentation.
 
 ## 🚀 Quick Start
 
