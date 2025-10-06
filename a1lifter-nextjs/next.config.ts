@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable experimental features for production optimization
@@ -60,4 +62,18 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+// Wrap with Sentry if DSN is configured
+export default process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG || "a1lifter",
+      project: process.env.SENTRY_PROJECT || "a1lifter-nextjs",
+      silent: !process.env.CI,
+      widenClientFileUpload: true,
+      reactComponentAnnotation: {
+        enabled: true,
+      },
+      tunnelRoute: "/monitoring",
+      disableLogger: true,
+      automaticVercelMonitors: true,
+    })
+  : nextConfig
