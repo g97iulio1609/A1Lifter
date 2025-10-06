@@ -53,13 +53,22 @@ export async function GET(
   }
 }
 
-type AthleteUpdatePayload = {
+type AthleteUpdateRequest = {
   name?: string | null
   email?: string
   isActive?: boolean
   role?: string
   password?: string | null
 }
+
+const VALID_ROLES = ["ADMIN", "ORGANIZER", "JUDGE", "ATHLETE"] as const
+type RoleValue = (typeof VALID_ROLES)[number]
+
+const isValidRole = (value: unknown): value is RoleValue => {
+  return typeof value === "string" && (VALID_ROLES as readonly string[]).includes(value)
+}
+
+type UserUpdateData = Parameters<typeof prisma.user.update>[0]["data"]
 
 export async function PATCH(
   request: NextRequest,
@@ -82,10 +91,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-  const body = await request.json()
+  const body = (await request.json()) as AthleteUpdateRequest
 
-  // Prepare update data
-  const updateData: AthleteUpdatePayload = {}
+    // Prepare update data
+  const updateData: UserUpdateData = {}
 
     if (body.name !== undefined) updateData.name = body.name
     if (body.email !== undefined) updateData.email = body.email
@@ -93,6 +102,9 @@ export async function PATCH(
       updateData.isActive = body.isActive
     }
     if (body.role !== undefined && session.user.role === "ADMIN") {
+      if (!isValidRole(body.role)) {
+        return NextResponse.json({ error: "Invalid role value" }, { status: 400 })
+      }
       updateData.role = body.role
     }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useEvents, useDeleteEvent } from "@/hooks/api/use-events"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RegisterToEventDialog } from "@/components/athletes/RegisterToEventDialog"
 import {
   CalendarDays,
   MapPin,
@@ -45,36 +47,22 @@ export default function EventsPage() {
   const { data: session } = useSession()
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
+  const router = useRouter()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
+
+  const isAdminOrOrganizer = session?.user.role === "ADMIN" || session?.user.role === "ORGANIZER"
 
   if (!session) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Please sign in to manage events</h1>
-          <p className="mt-2 text-gray-600">You need an organizer or admin account to continue.</p>
-          <Link href="/auth/signin">
-            <Button className="mt-4">Sign in</Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (session.user.role !== "ADMIN" && session.user.role !== "ORGANIZER") {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Access denied</h1>
-          <p className="mt-2 text-gray-600">Only organizers and admins can manage events.</p>
-          <Link href="/dashboard">
-            <Button className="mt-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to dashboard
-            </Button>
-          </Link>
+          <h1 className="text-2xl font-bold">Please sign in to view events</h1>
+          <p className="mt-2 text-gray-600">Sign in to browse and register for competitions.</p>
+          <Button className="mt-4" asChild>
+            <Link href="/auth/signin">Sign in</Link>
+          </Button>
         </div>
       </div>
     )
@@ -111,21 +99,27 @@ export default function EventsPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Events</h1>
-            <p className="mt-2 text-gray-600">Create, schedule, and monitor your competitions.</p>
+            <p className="mt-2 text-gray-600">
+              {isAdminOrOrganizer
+                ? "Create, schedule, and monitor your competitions."
+                : "Browse and register for upcoming competitions."}
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/dashboard">
-              <Button variant="outline">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Dashboard
+              </Link>
+            </Button>
+            {isAdminOrOrganizer && (
+              <Button asChild>
+                <Link href="/events/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New event
+                </Link>
               </Button>
-            </Link>
-            <Link href="/events/create">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New event
-              </Button>
-            </Link>
+            )}
           </div>
         </div>
       </header>
@@ -176,12 +170,12 @@ export default function EventsPage() {
               <CardDescription>
                 Adjust your search or create a new competition to get started.
               </CardDescription>
-              <Link href="/events/create">
-                <Button className="mt-4">
+              <Button className="mt-4" asChild>
+                <Link href="/events/create">
                   <Plus className="mr-2 h-4 w-4" />
                   Create event
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -191,76 +185,108 @@ export default function EventsPage() {
                 (event as unknown as { _count?: { registrations: number } })._count?.registrations ??
                 (Array.isArray(event.registrations) ? event.registrations.length : 0)
 
+              // Check if user is already registered
+              const userRegistrations = event.registrations || []
+              const isRegistered = Array.isArray(userRegistrations) &&
+                userRegistrations.some((reg: any) => reg.userId === session?.user?.id)
+
               return (
-                <Card key={event.id} className="overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
-                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{event.name}</CardTitle>
-                    <CardDescription>{event.description || "No description available"}</CardDescription>
-                  </div>
-                  <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
-                    {event.status.replaceAll("_", " ")}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <CalendarDays className="h-4 w-4" />
-                      <div>
-                        <p>{new Date(event.startDate).toLocaleString()}</p>
-                        <p className="text-xs">Start</p>
+                <Card
+                  key={event.id}
+                  className="overflow-hidden shadow-sm transition-all hover:shadow-lg cursor-pointer"
+                  onClick={() => router.push(`/events/${event.id}`)}
+                >
+                  <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <CardTitle className="text-xl">{event.name}</CardTitle>
+                      <CardDescription>{event.description || "No description available"}</CardDescription>
+                    </div>
+                    <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
+                      {event.status.replaceAll("_", " ")}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <CalendarDays className="h-4 w-4" />
+                        <div>
+                          <p>{new Date(event.startDate).toLocaleDateString()}</p>
+                          <p className="text-xs">Start</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <CalendarDays className="h-4 w-4" />
+                        <div>
+                          <p>{new Date(event.endDate).toLocaleDateString()}</p>
+                          <p className="text-xs">End</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <MapPin className="h-4 w-4" />
+                        <span>{event.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Users className="h-4 w-4" />
+                        <span>{registrationCount} athletes</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <CalendarDays className="h-4 w-4" />
-                      <div>
-                        <p>{new Date(event.endDate).toLocaleString()}</p>
-                        <p className="text-xs">End</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{event.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Users className="h-4 w-4" />
-                      <span>{registrationCount} registrations</span>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                    {event.categories.map((category) => (
-                      <Badge key={category.id} variant="outline">
-                        {category.name}
-                      </Badge>
-                    ))}
-                  </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Badge variant="secondary">{event.sport}</Badge>
+                      {event.categories.slice(0, 3).map((category) => (
+                        <Badge key={category.id} variant="outline">
+                          {category.name}
+                        </Badge>
+                      ))}
+                      {event.categories.length > 3 && (
+                        <Badge variant="outline">+{event.categories.length - 3} more</Badge>
+                      )}
+                    </div>
 
-                  <div className="flex flex-wrap gap-3">
-                    <Link href={`/events/${event.id}`}>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                    </Link>
-                    <Link href={`/events/${event.id}/edit`}>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="flex items-center gap-2"
-                      disabled={deleteEvent.isPending}
-                      onClick={() => handleDelete(event.id, event.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
+                    <div className="flex flex-wrap gap-3" onClick={(e) => e.stopPropagation()}>
+                      {isAdminOrOrganizer ? (
+                        <>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2" asChild>
+                            <Link href={`/events/${event.id}/edit`}>
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            disabled={deleteEvent.isPending}
+                            onClick={() => handleDelete(event.id, event.name)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {isRegistered ? (
+                            <Badge variant="default" className="px-3 py-1">
+                              ✓ Registered
+                            </Badge>
+                          ) : event.status === "REGISTRATION_OPEN" ? (
+                            <RegisterToEventDialog
+                              event={{
+                                id: event.id,
+                                name: event.name,
+                                categories: event.categories,
+                              }}
+                              onSuccess={() => window.location.reload()}
+                            />
+                          ) : (
+                            <Badge variant="outline" className="px-3 py-1">
+                              Registration {event.status === "PLANNED" ? "not open" : "closed"}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
                 </Card>
               )
             })}

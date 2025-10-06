@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useEvent } from "@/hooks/api/use-events"
 import { useRegistrations, useApproveRegistration, useRejectRegistration } from "@/hooks/api/use-registrations"
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RegisterAthleteDialog } from "@/components/admin/RegisterAthleteDialog"
 import {
   ArrowLeft,
   CalendarDays,
@@ -26,12 +27,6 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-interface EventDetailPageProps {
-  params: {
-    eventId: string
-  }
-}
-
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
   IN_PROGRESS: "default",
   REGISTRATION_OPEN: "default",
@@ -45,8 +40,9 @@ const TABS = ["overview", "registrations", "attempts", "leaderboard"] as const
 
 type ActiveTab = (typeof TABS)[number]
 
-export default function EventDetailPage({ params }: EventDetailPageProps) {
-  const { eventId } = params
+export default function EventDetailPage() {
+  const params = useParams<{ eventId: string }>()
+  const eventId = params.eventId
   const router = useRouter()
   const { data: session } = useSession()
 
@@ -69,9 +65,9 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Please sign in to view this event</h1>
           <p className="mt-2 text-gray-600">Authentication is required to access event details.</p>
-          <Link href="/auth/signin">
-            <Button className="mt-4">Sign in</Button>
-          </Link>
+          <Button className="mt-4" asChild>
+            <Link href="/auth/signin">Sign in</Link>
+          </Button>
         </div>
       </div>
     )
@@ -91,12 +87,12 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Event not found</h1>
           <p className="mt-2 text-gray-600">The event you are trying to access does not exist.</p>
-          <Link href="/events">
-            <Button className="mt-4">
+          <Button className="mt-4" asChild>
+            <Link href="/events">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to events
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     )
@@ -172,12 +168,12 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
               Back
             </Button>
             {(session.user.role === "ADMIN" || session.user.role === "ORGANIZER") && (
-              <Link href={`/events/${event.id}/edit`}>
-                <Button>
+              <Button asChild>
+                <Link href={`/events/${event.id}/edit`}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit event
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
         </div>
@@ -304,8 +300,19 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
             {activeTab === "registrations" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Registrations</CardTitle>
-                  <CardDescription>Approve or reject participant entries</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Registrations</CardTitle>
+                      <CardDescription>Approve or reject participant entries</CardDescription>
+                    </div>
+                    {canManageRegistrations && event.categories.length > 0 && (
+                      <RegisterAthleteDialog
+                        eventId={event.id}
+                        categories={event.categories}
+                        onSuccess={() => window.location.reload()}
+                      />
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {registrationsLoading ? (
@@ -445,12 +452,12 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
                               <td className="px-4 py-3">
                                 {canManageAttempts ? (
                                   <div className="flex flex-wrap gap-2">
-                                    <Link href={`/judge?eventId=${event.id}`}>
-                                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                    <Button variant="outline" size="sm" className="flex items-center gap-1" asChild>
+                                      <Link href={`/judge?eventId=${event.id}`}>
                                         <ClipboardList className="h-4 w-4" />
                                         Judge
-                                      </Button>
-                                    </Link>
+                                      </Link>
+                                    </Button>
                                     <Button
                                       variant="destructive"
                                       size="sm"

@@ -9,10 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trophy, ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 
-export default function SignIn() {
+export default function SignUp() {
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -22,7 +25,45 @@ export default function SignIn() {
     setIsLoading(true)
     setError("")
 
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      setIsLoading(false)
+      return
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long")
+      setIsLoading(false)
+      return
+    }
+
     try {
+      // Register the user
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Failed to create account")
+        setIsLoading(false)
+        return
+      }
+
+      toast.success("Account created successfully!")
+
+      // Automatically sign in the user
       const result = await signIn("credentials", {
         email,
         password,
@@ -30,13 +71,16 @@ export default function SignIn() {
       })
 
       if (result?.error) {
-        setError("Invalid credentials. Please check your email and password.")
+        setError("Account created but failed to sign in. Please sign in manually.")
+        setTimeout(() => {
+          router.push("/auth/signin")
+        }, 2000)
       } else {
         router.push("/dashboard")
         router.refresh()
       }
     } catch (err) {
-      console.error('Sign in error:', err)
+      console.error('Sign up error:', err)
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -57,20 +101,32 @@ export default function SignIn() {
             </div>
           </div>
           <div>
-            <CardTitle className="text-3xl font-bold text-gray-900">Welcome to A1Lifter</CardTitle>
+            <CardTitle className="text-3xl font-bold text-gray-900">Create Your Account</CardTitle>
             <CardDescription className="text-base mt-2 text-gray-600">
-              Sign in to access your competition dashboard
+              Join A1Lifter to start competing
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-11 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@a1lifter.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-11 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
@@ -87,6 +143,21 @@ export default function SignIn() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-11 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
                 required
+                minLength={8}
+              />
+              <p className="text-xs text-gray-500">At least 8 characters</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-11 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+                minLength={8}
               />
             </div>
             {error && (
@@ -99,7 +170,7 @@ export default function SignIn() {
               className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md"
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
 
@@ -118,6 +189,7 @@ export default function SignIn() {
               variant="outline"
               className="w-full mt-4 h-11 border-gray-300 hover:bg-gray-50"
               onClick={handleGoogleSignIn}
+              type="button"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -125,15 +197,15 @@ export default function SignIn() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Sign in with Google
+              Sign up with Google
             </Button>
           </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link href="/auth/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Sign up
+              Already have an account?{" "}
+              <Link href="/auth/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Sign in
               </Link>
             </p>
           </div>
@@ -145,15 +217,6 @@ export default function SignIn() {
                 Back to home
               </Link>
             </Button>
-          </div>
-
-          <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <p className="text-xs font-medium text-indigo-900 mb-2">Demo Credentials:</p>
-            <div className="text-xs text-indigo-700 space-y-1">
-              <p><strong>Admin:</strong> admin@a1lifter.com / Admin123!</p>
-              <p><strong>Organizer:</strong> organizer@a1lifter.com / Admin123!</p>
-              <p><strong>Athlete:</strong> athlete1@a1lifter.com / Admin123!</p>
-            </div>
           </div>
         </CardContent>
       </Card>

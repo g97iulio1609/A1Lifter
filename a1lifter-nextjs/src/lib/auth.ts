@@ -47,21 +47,39 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          mustChangePassword: user.mustChangePassword,
         }
       }
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    })
+    // Google OAuth provider - only enabled if credentials are provided
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          })
+        ]
+      : []),
   ],
   session: {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = user.role
+        token.mustChangePassword = user.mustChangePassword
+      }
+      // Handle session update trigger (when updateSession is called)
+      if (trigger === "update" && session) {
+        // Fetch fresh user data from database
+        const updatedUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { mustChangePassword: true }
+        })
+        if (updatedUser) {
+          token.mustChangePassword = updatedUser.mustChangePassword
+        }
       }
       return token
     },
@@ -69,6 +87,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.sub!
         session.user.role = token.role as UserRole
+        session.user.mustChangePassword = token.mustChangePassword
       }
       return session
     },
@@ -76,4 +95,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
   },
+  // Security configuration
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
+  useSecureCookies: process.env.NODE_ENV === "production",
 }

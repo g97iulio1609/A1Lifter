@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   useAthlete,
@@ -26,14 +26,9 @@ import {
   Trash2,
 } from "lucide-react"
 
-interface AthleteDetailPageProps {
-  params: {
-    athleteId: string
-  }
-}
-
-export default function AthleteDetailPage({ params }: AthleteDetailPageProps) {
-  const { athleteId } = params
+export default function AthleteDetailPage() {
+  const params = useParams<{ athleteId: string }>()
+  const athleteId = params.athleteId
   const router = useRouter()
   const { data: session } = useSession()
   const { data: athlete, isLoading } = useAthlete(athleteId)

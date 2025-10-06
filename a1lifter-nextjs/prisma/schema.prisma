@@ -9,24 +9,25 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  email            String            @unique
-  name             String?
-  image            String?
-  role             UserRole          @default(ATHLETE)
-  emailVerified    DateTime?
-  isActive         Boolean           @default(true)
-  lastLoginAt      DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  password         String?
-  accounts         Account[]
-  attempts         Attempt[]
-  organizedEvents  Event[]           @relation("EventOrganizer")
-  judgeAssignments JudgeAssignment[]
-  notifications    Notification[]
-  registrations    Registration[]
-  sessions         UserSession[]
+  id                 String            @id @default(cuid())
+  email              String            @unique
+  name               String?
+  image              String?
+  role               UserRole          @default(ATHLETE)
+  emailVerified      DateTime?
+  isActive           Boolean           @default(true)
+  mustChangePassword Boolean           @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  password           String?
+  accounts           Account[]
+  attempts           Attempt[]
+  organizedEvents    Event[]           @relation("EventOrganizer")
+  judgeAssignments   JudgeAssignment[]
+  notifications      Notification[]
+  registrations      Registration[]
+  sessions           UserSession[]
 
   @@index([email])
   @@index([role])
@@ -259,6 +260,8 @@ enum UserRole {
   ORGANIZER
   JUDGE
   ATHLETE
+  USER
+  SUPER_ADMIN
 }
 
 enum Sport {
@@ -282,6 +285,7 @@ enum Gender {
   MALE
   FEMALE
   MIXED
+  OTHER
 }
 
 enum RegistrationStatus {

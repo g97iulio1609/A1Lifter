@@ -57,6 +57,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    if (!session.user?.id) {
+      console.error("Session user ID is missing:", session)
+      return NextResponse.json({ error: "Invalid session data" }, { status: 401 })
+    }
+
     const body = await request.json()
 
     // Validate required fields
@@ -66,6 +71,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const organizerId = body.organizerId || session.user.id
+
+    console.log("Creating event with organizerId:", organizerId)
 
     // Create event in database
     const newEvent = await prisma.event.create({
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
         endDate: new Date(body.endDate),
         location: body.location,
         maxAthletes: body.maxAthletes,
-        organizerId: body.organizerId || session.user.id,
+        organizerId: organizerId,
       },
       include: {
         organizer: {
@@ -86,6 +95,12 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             email: true
+          }
+        },
+        categories: true,
+        _count: {
+          select: {
+            registrations: true
           }
         }
       }
@@ -97,8 +112,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
   } catch (error) {
     console.error("Error creating event:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to create event", details: errorMessage },
       { status: 500 }
     )
   }

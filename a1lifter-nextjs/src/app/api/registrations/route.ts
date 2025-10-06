@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 })
     }
 
-    let registrationStatus = "PENDING"
+  type RegistrationStatusValue = "PENDING" | "APPROVED" | "REJECTED" | "WAITLIST"
+  let registrationStatus: RegistrationStatusValue = "PENDING"
     
     // Auto-approve if no max or under capacity
     if (!event.maxAthletes || event._count.registrations < event.maxAthletes) {

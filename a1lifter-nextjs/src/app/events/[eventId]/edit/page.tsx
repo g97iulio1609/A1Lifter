@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useEvent, useUpdateEvent } from "@/hooks/api/use-events"
@@ -12,12 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft, Save } from "lucide-react"
-
-interface EventEditPageProps {
-  params: {
-    eventId: string
-  }
-}
 
 const STATUS_OPTIONS = [
   "PLANNED",
@@ -36,8 +30,9 @@ const SPORT_OPTIONS = [
   "STREETLIFTING",
 ]
 
-export default function EditEventPage({ params }: EventEditPageProps) {
-  const { eventId } = params
+export default function EditEventPage() {
+  const params = useParams<{ eventId: string }>()
+  const eventId = params.eventId
   const router = useRouter()
   const { data: session } = useSession()
   const { data: event, isLoading } = useEvent(eventId)
@@ -74,9 +69,9 @@ export default function EditEventPage({ params }: EventEditPageProps) {
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Please sign in to edit events</h1>
-          <Link href="/auth/signin">
-            <Button className="mt-4">Sign in</Button>
-          </Link>
+          <Button className="mt-4" asChild>
+            <Link href="/auth/signin">Sign in</Link>
+          </Button>
         </div>
       </div>
     )
@@ -88,12 +83,12 @@ export default function EditEventPage({ params }: EventEditPageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Access denied</h1>
           <p className="mt-2 text-gray-600">Only organizers and admins can edit events.</p>
-          <Link href="/dashboard">
-            <Button className="mt-4">
+          <Button className="mt-4" asChild>
+            <Link href="/dashboard">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to dashboard
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     )
@@ -146,12 +141,12 @@ export default function EditEventPage({ params }: EventEditPageProps) {
             <p className="mt-2 text-gray-600">Update scheduling and logistics details.</p>
           </div>
           <div className="flex gap-3">
-            <Link href={`/events/${eventId}`}>
-              <Button variant="outline">
+            <Button variant="outline" asChild>
+              <Link href={`/events/${eventId}`}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Cancel
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button form="edit-event-form" type="submit" disabled={updateEvent.isPending}>
               {updateEvent.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save changes
