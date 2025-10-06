@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const validation = uploadSchema.safeParse({ attemptId })
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Invalid input", details: validation.error.errors },
+        { error: "Invalid input", details: validation.error.format() },
         { status: 400 }
       )
     }

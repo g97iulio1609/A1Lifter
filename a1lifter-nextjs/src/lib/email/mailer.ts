@@ -16,7 +16,7 @@ export interface EmailOptions {
  * Create email transporter
  * Configure with environment variables
  */
-function createTransporter() {
+function createEmailTransporter() {
   // For development, use ethereal.email test account
   // For production, use real SMTP credentials
   
@@ -36,7 +36,7 @@ function createTransporter() {
   }
 
   if (process.env.EMAIL_PROVIDER === "sendgrid") {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: "smtp.sendgrid.net",
       port: 587,
       auth: {
@@ -69,7 +69,7 @@ function createTransporter() {
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
-    const transporter = createTransporter()
+    const transporter = createEmailTransporter()
 
     if (!transporter) {
       // Log email to console in development
