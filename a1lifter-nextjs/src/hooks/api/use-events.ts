@@ -110,14 +110,76 @@ export function useDeleteEvent() {
       const response = await fetch(`${API_BASE}/events/${eventId}`, {
         method: "DELETE",
       })
-      
+
       if (!response.ok) {
-        throw new Error("Failed to delete event")
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to delete event")
       }
     },
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ["events"] })
+    },
+  })
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      eventId,
+      category,
+    }: {
+      eventId: string
+      category: {
+        name: string
+        gender: string
+        minWeight?: number
+        maxWeight?: number
+        ageMin?: number
+        ageMax?: number
+        order?: number
+      }
+    }) => {
+      const response = await fetch(`${API_BASE}/events/${eventId}/categories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(category),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to create category")
+      }
+
+      const data = await response.json()
+      return data.data
+    },
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId] })
+    },
+  })
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ eventId, categoryId }: { eventId: string; categoryId: string }) => {
+      const response = await fetch(`${API_BASE}/events/${eventId}/categories/${categoryId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to delete category")
+      }
+    },
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId] })
     },
   })
 }

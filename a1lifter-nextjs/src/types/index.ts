@@ -25,6 +25,9 @@ export interface BaseCategory {
   gender: string
   minWeight: number | null
   maxWeight: number | null
+  ageMin?: number | null
+  ageMax?: number | null
+  order?: number | null
 }
 
 export interface BaseAttempt {
@@ -35,6 +38,15 @@ export interface BaseAttempt {
   attemptNumber: number
   weight: number
   result: string
+  status: string
+  judgeScores?: Record<string, unknown> | null
+  videoUrl?: string | null
+  notes?: string | null
+  timestamp: Date
+  lockedBy?: string | null
+  lockedAt?: Date | null
+  judgedAt?: Date | null
+  judgedBy?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -77,7 +89,12 @@ export type AttemptWithRelations = BaseAttempt & {
     id: string
     userId: string
     eventId: string
+    lot: number | null
+    platform: string | null
+    bodyWeight: number | null
   }
+  lockedByUser?: Pick<BaseUser, "id" | "name"> | null
+  judgedByUser?: Pick<BaseUser, "id" | "name"> | null
 }
 
 // API Response types

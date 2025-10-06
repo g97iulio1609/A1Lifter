@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { AttemptService } from "@/lib/services/attempt-service"
+import { UpdateAttemptSchema } from "@/lib/validations/attempts"
 import { prisma } from "@/lib/db"
+import { z } from "zod"
 
 export async function GET(
   request: NextRequest,
@@ -15,6 +18,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Get single attempt by ID directly from Prisma
     const attempt = await prisma.attempt.findUnique({
       where: { id },
       include: {
@@ -25,9 +29,22 @@ export async function GET(
             email: true,
           },
         },
-        event: true,
-        category: true,
-        registration: true,
+        event: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            gender: true,
+            minWeight: true,
+            maxWeight: true,
+          },
+        },
       },
     })
 
@@ -62,35 +79,11 @@ export async function PATCH(
 
     const body = await request.json()
 
-    const updatedAttempt = await prisma.attempt.update({
-      where: { id },
-      data: {
-        weight: body.weight,
-        result: body.result,
-        notes: body.notes,
-        videoUrl: body.videoUrl,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        event: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    })
+    // Validate request body with Zod
+    const validatedData = UpdateAttemptSchema.parse(body)
+
+    // Update attempt using service
+    const updatedAttempt = await AttemptService.updateAttempt(id, validatedData, session.user.id)
 
     return NextResponse.json({
       success: true,
@@ -98,6 +91,28 @@ export async function PATCH(
     })
   } catch (error) {
     console.error("Error updating attempt:", error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.issues },
+        { status: 400 }
+      )
+    }
+
+    if (error instanceof Error && error.message.includes("locked")) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 409 }
+      )
+    }
+    
+    if (error instanceof Error && error.message.includes("not found")) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 404 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -122,9 +137,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    await prisma.attempt.delete({
-      where: { id },
-    })
+    await AttemptService.deleteAttempt(id)
 
     return NextResponse.json({
       success: true,
@@ -132,6 +145,11 @@ export async function DELETE(
     })
   } catch (error) {
     console.error("Error deleting attempt:", error)
+
+    if (error instanceof Error && error.message.includes("Cannot delete")) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

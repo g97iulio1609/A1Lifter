@@ -36,8 +36,8 @@ export interface LeaderboardEntry {
   lifts: Record<string, number>
   total: number
   attempts: Array<Record<string, unknown>>
-  points?: number
-  sinclair?: number
+  points: number | null
+  sinclair: number | null
 }
 
 // Fetch attempts for an event
@@ -93,6 +93,59 @@ export function useCurrentAttempt(eventId: string | undefined) {
     },
     enabled: !!eventId,
     refetchInterval: 5000, // Poll every 5 seconds for live updates
+  })
+}
+
+// Claim next attempt for judging
+export function useClaimAttempt(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!eventId) throw new Error("Event ID is required")
+
+      const response = await fetch(`${API_BASE}/events/${eventId}/attempts/claim`, {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to claim attempt")
+      }
+
+      const data = await response.json()
+      return data.data as AttemptWithRelations
+    },
+    onSuccess: (attempt) => {
+      queryClient.invalidateQueries({ queryKey: ["current-attempt", attempt.eventId] })
+      queryClient.invalidateQueries({ queryKey: ["attempts", attempt.eventId] })
+    },
+  })
+}
+
+// Release the lock on an attempt
+export function useReleaseAttempt(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (attemptId: string) => {
+      const response = await fetch(`${API_BASE}/attempts/${attemptId}/release`, {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to release attempt")
+      }
+
+      const data = await response.json()
+      return data.data as AttemptWithRelations
+    },
+    onSuccess: (attempt) => {
+      const eventIdForInvalidate = eventId || attempt.eventId
+      queryClient.invalidateQueries({ queryKey: ["current-attempt", eventIdForInvalidate] })
+      queryClient.invalidateQueries({ queryKey: ["attempts", eventIdForInvalidate] })
+    },
   })
 }
 

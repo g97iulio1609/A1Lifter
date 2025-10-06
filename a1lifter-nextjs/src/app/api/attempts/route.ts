@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
+import { AttemptService } from "@/lib/services/attempt-service"
+import { CreateAttemptSchema } from "@/lib/validations/attempts"
+import { z } from "zod"
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,75 +15,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    // Validate required fields
-    if (
-      !body.userId ||
-      !body.eventId ||
-      !body.categoryId ||
-      !body.registrationId ||
-      !body.lift ||
-      body.attemptNumber === undefined ||
-      !body.weight
-    ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      )
-    }
+    // Validate request body with Zod
+    const validatedData = CreateAttemptSchema.parse(body)
 
-    // Check if attempt already exists
-    const existingAttempt = await prisma.attempt.findUnique({
-      where: {
-        userId_eventId_lift_attemptNumber: {
-          userId: body.userId,
-          eventId: body.eventId,
-          lift: body.lift,
-          attemptNumber: body.attemptNumber,
-        },
-      },
-    })
-
-    if (existingAttempt) {
-      return NextResponse.json(
-        { error: "Attempt already exists" },
-        { status: 400 }
-      )
-    }
-
-    // Create attempt
-    const newAttempt = await prisma.attempt.create({
-      data: {
-        userId: body.userId,
-        eventId: body.eventId,
-        categoryId: body.categoryId,
-        registrationId: body.registrationId,
-        lift: body.lift,
-        attemptNumber: body.attemptNumber,
-        weight: body.weight,
-        result: "PENDING",
-        notes: body.notes,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        event: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    })
+    // Create attempt using service
+    const newAttempt = await AttemptService.createAttempt(validatedData)
 
     return NextResponse.json(
       {
@@ -92,6 +30,21 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error("Error creating attempt:", error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.issues },
+        { status: 400 }
+      )
+    }
+    
+    if (error instanceof Error && error.message.includes("already exists")) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

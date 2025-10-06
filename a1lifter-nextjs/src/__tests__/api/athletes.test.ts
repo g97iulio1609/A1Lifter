@@ -1,15 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
-import { GET, POST } from '@/app/api/athletes/route'
-import { prisma } from '@/lib/db'
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import { NextRequest } from "next/server"
+import { GET, POST } from "@/app/api/athletes/route"
+import { prisma } from "@/lib/db"
 
-vi.mock('@/lib/db')
-vi.mock('@/lib/auth', () => ({
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    user: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
+  },
+}))
+
+vi.mock("@/lib/auth", () => ({
   authOptions: {},
 }))
-vi.mock('next-auth/next', () => ({
+
+vi.mock("next-auth", () => ({
   getServerSession: vi.fn(() => Promise.resolve({
-    user: { id: 'user-1', role: 'ADMIN' }
+    user: { id: "user-1", role: "ADMIN" },
   })),
 }))
 
@@ -72,7 +82,7 @@ describe('/api/athletes', () => {
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
-      vi.mocked(prisma.user.create).mockResolvedValue(createdAthlete as any)
+      vi.mocked(prisma.user.create).mockResolvedValue(createdAthlete as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const request = new NextRequest('http://localhost:3000/api/athletes', {
         method: 'POST',

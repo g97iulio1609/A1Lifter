@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
+import { AttemptService } from "@/lib/services/attempt-service"
 
 export async function GET(
   request: NextRequest,
@@ -15,37 +15,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the current pending attempt (next to be judged)
-    const currentAttempt = await prisma.attempt.findFirst({
-      where: {
-        eventId,
-        result: "PENDING",
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        registration: {
-          select: {
-            lot: true,
-            platform: true,
-            bodyWeight: true,
-          },
-        },
-      },
-      orderBy: {
-        timestamp: "asc",
-      },
-    })
+    // Get current attempt for the event using service
+    const currentAttempt = await AttemptService.getCurrentAttempt(eventId, session.user.id)
 
     if (!currentAttempt) {
       return NextResponse.json(

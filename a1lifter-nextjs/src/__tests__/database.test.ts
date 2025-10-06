@@ -8,7 +8,10 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-describe('Database Operations - Users', () => {
+const shouldRunDbTests = process.env.RUN_DB_TESTS === 'true'
+const describeDb = shouldRunDbTests ? describe : describe.skip
+
+describeDb('Database Operations - Users', () => {
   const testUserId = 'test-user-' + Date.now()
   
   afterAll(async () => {
@@ -62,7 +65,7 @@ describe('Database Operations - Users', () => {
   })
 })
 
-describe('Database Operations - Events', () => {
+describeDb('Database Operations - Events', () => {
   let testOrganizerId: string
   let testEventId: string
 
@@ -151,7 +154,7 @@ describe('Database Operations - Events', () => {
   })
 })
 
-describe('Database Operations - Registrations', () => {
+describeDb('Database Operations - Registrations', () => {
   let testAthleteId: string
   let testEventId: string
   let testCategoryId: string
@@ -282,7 +285,7 @@ describe('Database Operations - Registrations', () => {
   })
 })
 
-describe('Database Operations - Attempts', () => {
+describeDb('Database Operations - Attempts', () => {
   let testAthleteId: string
   let testEventId: string
   let testCategoryId: string
@@ -424,7 +427,7 @@ describe('Database Operations - Attempts', () => {
   })
 })
 
-describe('Database Operations - Performance', () => {
+describeDb('Database Operations - Performance', () => {
   it('should handle bulk operations efficiently', async () => {
     const startTime = Date.now()
 
@@ -473,7 +476,7 @@ describe('Database Operations - Performance', () => {
   })
 })
 
-describe('Database Operations - Transactions', () => {
+describeDb('Database Operations - Transactions', () => {
   it('should handle transactions correctly', async () => {
     const testOrgId = 'txn-org-' + Date.now()
     const testEventId = 'txn-evt-' + Date.now()

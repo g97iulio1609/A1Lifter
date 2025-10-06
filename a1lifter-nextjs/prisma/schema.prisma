@@ -23,6 +23,8 @@ model User {
   password           String?
   accounts           Account[]
   attempts           Attempt[]
+  lockedAttempts     Attempt[]         @relation("AttemptLockedBy")
+  judgedAttempts     Attempt[]         @relation("AttemptJudgedBy")
   organizedEvents    Event[]           @relation("EventOrganizer")
   judgeAssignments   JudgeAssignment[]
   notifications      Notification[]
@@ -177,16 +179,23 @@ model Attempt {
   attemptNumber  Int
   weight         Float
   result         AttemptResult @default(PENDING)
+  status         AttemptStatus @default(QUEUED)
   judgeScores    Json?
   videoUrl       String?
   notes          String?
   timestamp      DateTime      @default(now())
+  lockedBy       String?
+  lockedAt       DateTime?
+  judgedAt       DateTime?
+  judgedBy       String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   category       Category      @relation(fields: [categoryId], references: [id])
   event          Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lockedByUser   User?         @relation("AttemptLockedBy", fields: [lockedBy], references: [id])
+  judgedByUser   User?         @relation("AttemptJudgedBy", fields: [judgedBy], references: [id])
 
   @@unique([userId, eventId, lift, attemptNumber])
   @@index([userId])
@@ -194,8 +203,17 @@ model Attempt {
   @@index([categoryId])
   @@index([registrationId])
   @@index([result])
+  @@index([status])
+  @@index([lockedBy])
+  @@index([judgedBy])
   @@index([timestamp])
   @@map("attempts")
+}
+
+enum AttemptStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
 }
 
 model JudgeAssignment {

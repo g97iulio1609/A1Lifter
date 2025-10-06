@@ -151,6 +151,9 @@ graph TD
 • [✅] T3 Implementare Supabase RLS (script completo in scripts/setup-rls-policies.sql, run con `npm run setup:rls`)
 • [ ] T4 Configurare CI lint/typecheck/test su GitHub
 • [ ] T5 Copertura test regressione per registrazioni/notifiche
+• [✅] T6 Notification center completo (mark-as-read + badge nav)
+• [✅] T7 Stabilizzare pipeline tentativi (locking, status, API/UI)
+• [✅] T8 Ampliare analytics con punti Sinclair e gestione categorie
 
 ### RLS Implementation Status
 ✅ **Row Level Security Policies**: Implementate in `scripts/setup-rls-policies.sql`

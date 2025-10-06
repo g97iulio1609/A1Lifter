@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { useEvent } from "@/hooks/api/use-events"
+import { useEvent, useDeleteCategory } from "@/hooks/api/use-events"
 import { useRegistrations, useApproveRegistration, useRejectRegistration } from "@/hooks/api/use-registrations"
 import { useAttempts, useDeleteAttempt, useLeaderboard, LeaderboardEntry } from "@/hooks/api/use-attempts"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RegisterAthleteDialog } from "@/components/admin/RegisterAthleteDialog"
+import { CreateCategoryDialog } from "@/components/admin/CreateCategoryDialog"
 import {
   ArrowLeft,
   CalendarDays,
@@ -53,6 +54,7 @@ export default function EventDetailPage() {
   const { data: registrations, isLoading: registrationsLoading } = useRegistrations(eventId)
   const { data: attempts, isLoading: attemptsLoading } = useAttempts(eventId)
   const deleteAttempt = useDeleteAttempt()
+  const deleteCategory = useDeleteCategory()
   const approveRegistration = useApproveRegistration()
   const rejectRegistration = useRejectRegistration()
 
@@ -136,6 +138,19 @@ export default function EventDetailPage() {
     }
   }
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    const confirmed = window.confirm("Delete this category? Athletes linked to it will need reassignment.")
+    if (!confirmed) return
+
+    try {
+      await deleteCategory.mutateAsync({ eventId, categoryId })
+      toast.success("Category removed")
+    } catch (error) {
+      console.error(error)
+      toast.error("Unable to delete category")
+    }
+  }
+
   const formatDateRange = (startDate: string | Date, endDate: string | Date) => {
     const formatter = new Intl.DateTimeFormat(undefined, {
       day: "numeric",
@@ -148,7 +163,8 @@ export default function EventDetailPage() {
     return `${formatter.format(new Date(startDate))} → ${formatter.format(new Date(endDate))}`
   }
 
-  const canManageRegistrations = session.user.role === "ADMIN" || session.user.role === "ORGANIZER"
+  const canManageCategories = session.user.role === "ADMIN" || session.user.role === "ORGANIZER"
+  const canManageRegistrations = canManageCategories
   const canManageAttempts = canManageRegistrations || session.user.role === "JUDGE"
 
   return (
@@ -277,22 +293,66 @@ export default function EventDetailPage() {
             {activeTab === "overview" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Competition overview</CardTitle>
-                  <CardDescription>Categories and structure</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Competition overview</CardTitle>
+                      <CardDescription>Categories and structure</CardDescription>
+                    </div>
+                    {canManageCategories && <CreateCategoryDialog eventId={event.id} />}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Categories</h3>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {event.categories.length === 0 ? (
-                      <p className="text-sm text-gray-500">No categories defined yet.</p>
-                    ) : (
-                      event.categories.map((category) => (
-                        <Badge key={category.id} variant="outline" className="text-xs">
-                          {category.name}
-                        </Badge>
-                      ))
-                    )}
-                  </div>
+                  {event.categories.length === 0 ? (
+                    <p className="text-sm text-gray-500">No categories defined yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Name</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Gender</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Weight (kg)</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Age</th>
+                            {canManageCategories && <th className="px-3 py-2 text-right font-semibold text-gray-600">Actions</th>}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {event.categories.map((category) => {
+                            const weightRange =
+                              category.minWeight && category.maxWeight
+                                ? `${category.minWeight} – ${category.maxWeight}`
+                                : "—"
+                            const ageRange =
+                              category.ageMin && category.ageMax
+                                ? `${category.ageMin} – ${category.ageMax}`
+                                : "—"
+
+                            return (
+                              <tr key={category.id}>
+                                <td className="px-3 py-2 text-gray-700">{category.name}</td>
+                                <td className="px-3 py-2 text-gray-700">{category.gender}</td>
+                                <td className="px-3 py-2 text-gray-700">{weightRange}</td>
+                                <td className="px-3 py-2 text-gray-700">{ageRange}</td>
+                                {canManageCategories && (
+                                  <td className="px-3 py-2 text-right">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDeleteCategory(category.id)}
+                                      disabled={deleteCategory.isPending}
+                                      aria-label={`Delete ${category.name}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </td>
+                                )}
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -487,7 +547,7 @@ export default function EventDetailPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Leaderboard</CardTitle>
-                  <CardDescription>Live ranking by Sinclair coefficient</CardDescription>
+                  <CardDescription>Live ranking by Sinclair coefficient and points</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {leaderboardLoading ? (
@@ -506,8 +566,9 @@ export default function EventDetailPage() {
                             <th className="px-4 py-3 text-left font-semibold text-gray-600">Placement</th>
                             <th className="px-4 py-3 text-left font-semibold text-gray-600">Athlete</th>
                             <th className="px-4 py-3 text-left font-semibold text-gray-600">Category</th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Total</th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Sinclair/Points</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Total (kg)</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Sinclair coeff.</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Points</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
@@ -524,7 +585,8 @@ export default function EventDetailPage() {
                               <td className="px-4 py-3 text-gray-700">{entry.userName || "Unknown"}</td>
                               <td className="px-4 py-3 text-gray-700">{entry.categoryName || "—"}</td>
                               <td className="px-4 py-3 text-gray-700">{entry.total.toFixed(1)}</td>
-                              <td className="px-4 py-3 text-gray-700">{entry.points ?? entry.sinclair ?? "—"}</td>
+                              <td className="px-4 py-3 text-gray-700">{entry.sinclair !== null ? entry.sinclair.toFixed(3) : "—"}</td>
+                              <td className="px-4 py-3 text-gray-700">{entry.points !== null ? entry.points.toFixed(2) : "—"}</td>
                             </tr>
                           ))}
                         </tbody>

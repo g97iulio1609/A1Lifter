@@ -247,9 +247,9 @@ export function useRealtimeNotifications(userId: string) {
           table: "notifications",
           filter: `userId=eq.${userId}`,
         },
-        (payload) => {
-          console.log("New notification:", payload)
+        () => {
           queryClient.invalidateQueries({ queryKey: ["notifications", userId] })
+          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count", userId] })
           setUnreadCount((prev) => prev + 1)
         }
       )
@@ -261,8 +261,20 @@ export function useRealtimeNotifications(userId: string) {
           table: "notifications",
           filter: `userId=eq.${userId}`,
         },
-        () => {
+        (payload: { old?: { isRead?: boolean }; new?: { isRead?: boolean } }) => {
           queryClient.invalidateQueries({ queryKey: ["notifications", userId] })
+          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count", userId] })
+
+          const wasUnread = payload?.old?.isRead === false
+          const nowUnread = payload?.new?.isRead === false
+
+          if (wasUnread && !nowUnread) {
+            setUnreadCount((prev) => Math.max(0, prev - 1))
+          }
+
+          if (!wasUnread && nowUnread) {
+            setUnreadCount((prev) => prev + 1)
+          }
         }
       )
       .subscribe()
