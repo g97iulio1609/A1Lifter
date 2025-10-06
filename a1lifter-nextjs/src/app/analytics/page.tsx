@@ -16,7 +16,10 @@ import {
   Activity,
   ArrowLeft,
   Loader2,
+  Download,
+  FileDown,
 } from "lucide-react"
+import { exportDashboardStats, exportTopLifters, exportEvents, exportToPDF } from "@/lib/export"
 
 export default function AnalyticsPage() {
   const { data: session } = useSession()
