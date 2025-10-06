@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { captureException } from "@/lib/observability"
 
 export async function GET() {
   try {
@@ -114,7 +115,7 @@ export async function GET() {
       data: stats,
     })
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error)
+    captureException(error, { tags: { route: "dashboard/stats" } })
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
