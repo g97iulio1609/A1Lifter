@@ -13,6 +13,8 @@ export interface AttemptFormData {
   lift: string
   attemptNumber: number
   weight: number
+  notes?: string
+  videoUrl?: string
 }
 
 export interface JudgeAttemptData {
@@ -268,6 +270,42 @@ export function useDeleteAttempt() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attempts"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
+    },
+  })
+}
+
+// Upload attempt video
+export function useUploadAttemptVideo() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      attemptId,
+      file,
+    }: {
+      attemptId: string
+      file: File
+    }): Promise<AttemptWithRelations> => {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch(`${API_BASE}/attempts/${attemptId}/video`, {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to upload video")
+      }
+
+      const data = await response.json()
+      return data.data
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["attempts", data.eventId] })
+      queryClient.invalidateQueries({ queryKey: ["leaderboard", data.eventId] })
+      queryClient.invalidateQueries({ queryKey: ["current-attempt", data.eventId] })
     },
   })
 }

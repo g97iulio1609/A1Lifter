@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { EmailService } from "@/lib/email/service"
+import { registrationStatusTemplate } from "@/lib/email/templates"
 
 export async function GET(request: NextRequest) {
   try {
@@ -182,6 +184,22 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    if (EmailService.isConfigured() && newRegistration.user.email) {
+      const template = registrationStatusTemplate({
+        athleteName: newRegistration.user.name || newRegistration.user.email,
+        eventName: event.name,
+        status: registrationStatus,
+        notes: newRegistration.notes,
+      })
+
+      await EmailService.sendMail({
+        to: newRegistration.user.email,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+      })
+    }
 
     return NextResponse.json(
       {

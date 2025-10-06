@@ -30,6 +30,20 @@ const SPORT_OPTIONS = [
   "STREETLIFTING",
 ]
 
+type FormState = {
+  name: string
+  description: string
+  sport: string
+  status: string
+  startDate: string
+  endDate: string
+  location: string
+  maxAthletes: string
+  liveStreamUrl: string
+  liveStreamEmbed: string
+  liveStreamActive: boolean
+}
+
 export default function EditEventPage() {
   const params = useParams<{ eventId: string }>()
   const eventId = params.eventId
@@ -38,7 +52,7 @@ export default function EditEventPage() {
   const { data: event, isLoading } = useEvent(eventId)
   const updateEvent = useUpdateEvent()
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     name: "",
     description: "",
     sport: "POWERLIFTING",
@@ -47,6 +61,9 @@ export default function EditEventPage() {
     endDate: "",
     location: "",
     maxAthletes: "",
+    liveStreamUrl: "",
+    liveStreamEmbed: "",
+    liveStreamActive: false,
   })
 
   useEffect(() => {
@@ -61,6 +78,9 @@ export default function EditEventPage() {
       endDate: new Date(event.endDate).toISOString().slice(0, 16),
       location: event.location,
       maxAthletes: event.maxAthletes ? String(event.maxAthletes) : "",
+      liveStreamUrl: event.liveStreamUrl ?? "",
+      liveStreamEmbed: event.liveStreamEmbed ?? "",
+      liveStreamActive: Boolean(event.liveStreamActive),
     })
   }, [event])
 
@@ -102,7 +122,7 @@ export default function EditEventPage() {
     )
   }
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -121,6 +141,9 @@ export default function EditEventPage() {
           endDate: formData.endDate,
           location: formData.location,
           maxAthletes: formData.maxAthletes ? Number(formData.maxAthletes) : undefined,
+          liveStreamUrl: formData.liveStreamUrl || undefined,
+          liveStreamEmbed: formData.liveStreamEmbed || undefined,
+          liveStreamActive: formData.liveStreamActive,
         },
       })
 
@@ -261,6 +284,40 @@ export default function EditEventPage() {
                   value={formData.maxAthletes}
                   onChange={(event) => handleChange("maxAthletes", event.target.value)}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="liveStreamUrl">Live stream URL</Label>
+                  <Input
+                    id="liveStreamUrl"
+                    value={formData.liveStreamUrl}
+                    onChange={(event) => handleChange("liveStreamUrl", event.target.value)}
+                    placeholder="https://"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="liveStreamEmbed">Embed URL</Label>
+                  <Input
+                    id="liveStreamEmbed"
+                    value={formData.liveStreamEmbed}
+                    onChange={(event) => handleChange("liveStreamEmbed", event.target.value)}
+                    placeholder="https://player.example.com/embed/..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  id="liveStreamActive"
+                  type="checkbox"
+                  checked={formData.liveStreamActive}
+                  onChange={(event) => handleChange("liveStreamActive", event.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Label htmlFor="liveStreamActive" className="text-sm text-gray-600">
+                  Display stream on the public live hub
+                </Label>
               </div>
             </form>
           </CardContent>

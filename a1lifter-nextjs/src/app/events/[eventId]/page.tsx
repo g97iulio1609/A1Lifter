@@ -1,12 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useEvent, useDeleteCategory } from "@/hooks/api/use-events"
 import { useRegistrations, useApproveRegistration, useRejectRegistration } from "@/hooks/api/use-registrations"
-import { useAttempts, useDeleteAttempt, useLeaderboard, LeaderboardEntry } from "@/hooks/api/use-attempts"
+import {
+  useAttempts,
+  useDeleteAttempt,
+  useLeaderboard,
+  LeaderboardEntry,
+  useUploadAttemptVideo,
+} from "@/hooks/api/use-attempts"
+import type { AttemptWithRelations } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +32,8 @@ import {
   ClipboardList,
   Trash2,
   Trophy,
+  Upload,
+  Play,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -40,6 +49,56 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 const TABS = ["overview", "registrations", "attempts", "leaderboard"] as const
 
 type ActiveTab = (typeof TABS)[number]
+
+function AttemptVideoUploader({ attempt }: { attempt: AttemptWithRelations }) {
+  const uploadVideo = useUploadAttemptVideo()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      await uploadVideo.mutateAsync({ attemptId: attempt.id, file })
+      toast.success("Video uploaded")
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to upload video")
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="video/*"
+        onChange={handleChange}
+      />
+      <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={handleClick} disabled={uploadVideo.isPending}>
+        <Upload className="h-4 w-4" />
+        {attempt.videoUrl ? "Update video" : "Upload video"}
+      </Button>
+      {attempt.videoUrl && (
+        <Button variant="ghost" size="sm" className="flex items-center gap-1" asChild>
+          <a href={attempt.videoUrl} target="_blank" rel="noopener noreferrer">
+            <Play className="h-4 w-4" />
+            Watch
+          </a>
+        </Button>
+      )}
+    </div>
+  )
+}
 
 export default function EventDetailPage() {
   const params = useParams<{ eventId: string }>()
@@ -512,6 +571,7 @@ export default function EventDetailPage() {
                               <td className="px-4 py-3">
                                 {canManageAttempts ? (
                                   <div className="flex flex-wrap gap-2">
+                                    <AttemptVideoUploader attempt={attempt} />
                                     <Button variant="outline" size="sm" className="flex items-center gap-1" asChild>
                                       <Link href={`/judge?eventId=${event.id}`}>
                                         <ClipboardList className="h-4 w-4" />
