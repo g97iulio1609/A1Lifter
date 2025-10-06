@@ -3,14 +3,39 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { captureException } from "@/lib/observability"
+import { cache, cacheKeys } from "@/lib/cache"
+import { Profiler } from "@/lib/performance"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
+  const profiler = new Profiler("dashboard-stats")
+
   try {
+    profiler.mark("start")
     const session = await getServerSession(authOptions)
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    profiler.mark("auth-complete")
+
+    // Try to get from cache first
+    const cacheKey = cacheKeys.dashboard()
+    const cached = cache.get(cacheKey)
+
+    if (cached) {
+      profiler.measure("cache-hit", "start")
+      profiler.logSummary()
+      return NextResponse.json({
+        success: true,
+        data: cached,
+        cached: true,
+      })
+    }
+
+    profiler.mark("cache-miss")
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -98,6 +123,9 @@ export async function GET() {
       }),
     ])
 
+    profiler.mark("queries-complete")
+    profiler.measure("database-queries", "cache-miss", "queries-complete")
+
     const stats = {
       totalAthletes,
       activeCompetitions,
@@ -110,9 +138,16 @@ export async function GET() {
       pendingApprovals,
     }
 
+    // Cache for 5 minutes
+    cache.set(cacheKey, stats, 300)
+
+    profiler.measure("total", "start")
+    profiler.logSummary()
+
     return NextResponse.json({
       success: true,
       data: stats,
+      cached: false,
     })
   } catch (error) {
     captureException(error, { tags: { route: "dashboard/stats" } })
