@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
+import { AttemptService } from "@/lib/services/attempt-service"
+import { z } from "zod"
 
 export async function GET(
   request: NextRequest,
@@ -16,52 +17,40 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
+    const userId = searchParams.get("userId") || undefined
+    const lift = searchParams.get("lift") as "SNATCH" | "CLEAN_AND_JERK" | undefined
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined
+    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined
 
-  // Build query
-  const where: { eventId: string; userId?: string } = { eventId }
-    if (userId) {
-      where.userId = userId
-    }
-
-    const attempts = await prisma.attempt.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            gender: true,
-          },
-        },
-        registration: {
-          select: {
-            id: true,
-            lot: true,
-            platform: true,
-            bodyWeight: true,
-          },
-        },
-      },
-      orderBy: [
-        { timestamp: "desc" },
-        { attemptNumber: "asc" },
-      ],
+    // Use service to get attempts
+    const result = await AttemptService.getAttempts({
+      eventId,
+      userId,
+      lift,
+      limit,
+      offset,
     })
 
     return NextResponse.json({
       success: true,
-      data: attempts,
+      data: result.attempts,
+      meta: {
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore,
+      },
     })
   } catch (error) {
     console.error("Error fetching attempts:", error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.issues },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
