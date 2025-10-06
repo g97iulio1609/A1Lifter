@@ -336,3 +336,11 @@ npx prisma studio
 - [Supabase Dashboard](https://app.supabase.com)
 - [GitHub Repository](https://github.com/g97iulio1609/A1Lifter)
 - [Documentation](./docs/)
+## Observability Notes (P2 groundwork)
+
+- Use `src/lib/observability.ts` helpers:
+  - `initObservability()` to initialize lightweight tracking (no external SDKs yet)
+  - `captureException(err, { tags, extra })` to record errors with context
+  - `captureMessage(message, { tags, extra })` for important warnings
+- Example integration added in `src/app/api/dashboard/stats/route.ts`.
+- Future: wire real providers (e.g., Sentry) behind these helpers.

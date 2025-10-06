@@ -14,8 +14,8 @@ ALTER TABLE "attempts"
 -- Backfill status for existing attempts
 UPDATE "attempts"
 SET "status" = CASE
-  WHEN "result" = 'PENDING' THEN 'QUEUED'
-  ELSE 'COMPLETED'
+  WHEN "result" = 'PENDING' THEN 'QUEUED'::"AttemptStatus"
+  ELSE 'COMPLETED'::"AttemptStatus"
 END;
 
 -- Create indexes to support locking queries

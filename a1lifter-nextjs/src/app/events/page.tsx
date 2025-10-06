@@ -188,7 +188,7 @@ export default function EventsPage() {
               const userRegistrations = event.registrations || []
               const isRegistered =
                 Array.isArray(userRegistrations) &&
-                userRegistrations.some((reg: { userId?: string }) => reg.userId === session?.user?.id)
+                (userRegistrations as Array<{ userId?: string }>).some((reg) => reg.userId === session?.user?.id)
 
               return (
                 <Card
