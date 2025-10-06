@@ -117,7 +117,7 @@ export async function batchProcess<T, R>(
     const batch = items.slice(i, i + batchSize)
     const batchNumber = Math.floor(i / batchSize) + 1
 
-    const { result, duration } = await measureTime(
+    const { result } = await measureTime(
       () => processor(batch),
       `Batch ${batchNumber}/${totalBatches}`
     )

@@ -9,6 +9,7 @@ import { useTopLifters } from "@/hooks/api/use-analytics"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ResponsiveTable } from "@/components/ui/responsive-table"
 import {
   BarChart3,
   Users,
@@ -19,7 +20,7 @@ import {
   Download,
   FileDown,
 } from "lucide-react"
-import { exportDashboardStats, exportTopLifters, exportEvents, exportToPDF } from "@/lib/export"
+import { exportDashboardStats, exportTopLifters } from "@/lib/export"
 
 export default function AnalyticsPage() {
   const { data: session } = useSession()
@@ -83,13 +84,13 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
       <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-            <p className="mt-2 text-gray-600">Realtime KPIs for competitions, athletes, and records.</p>
+            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Analytics</h1>
+            <p className="mt-2 text-sm text-gray-600 md:text-base">Realtime KPIs for competitions, athletes, and records.</p>
           </div>
           <Link href="/dashboard">
-            <Button variant="outline">
+            <Button variant="outline" className="min-h-[44px] w-full sm:w-auto">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Dashboard
             </Button>
@@ -220,44 +221,59 @@ export default function AnalyticsPage() {
 
         <section className="mt-8">
           <Card>
-            <CardHeader>
-              <CardTitle>Top Sinclair Performers</CardTitle>
-              <CardDescription>Leaders across all events by Sinclair points.</CardDescription>
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Top Sinclair Performers</CardTitle>
+                <CardDescription>Leaders across all events by Sinclair points.</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => stats && exportDashboardStats(stats)}
+                  disabled={!stats}
+                  className="min-h-[44px]"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Stats
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => topLifters && exportTopLifters(topLifters)}
+                  disabled={!topLifters || topLifters.length === 0}
+                  className="min-h-[44px]"
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export Lifters
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {topLiftersLoading ? (
                 <div className="flex h-40 items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
                 </div>
-              ) : !topLifters || topLifters.length === 0 ? (
-                <p className="text-sm text-gray-500">No lifts recorded yet.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Rank</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Athlete</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Event</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Total (kg)</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Sinclair coeff.</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Points</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {topLifters.map((lifter, index) => (
-                        <tr key={`${lifter.userId}-${lifter.eventId}`}>
-                          <td className="px-3 py-2 font-semibold text-gray-700">#{index + 1}</td>
-                          <td className="px-3 py-2 text-gray-700">{lifter.userName}</td>
-                          <td className="px-3 py-2 text-gray-700">{lifter.eventName}</td>
-                          <td className="px-3 py-2 text-gray-700">{lifter.total.toFixed(1)}</td>
-                          <td className="px-3 py-2 text-gray-700">{lifter.sinclair !== null ? lifter.sinclair.toFixed(3) : "—"}</td>
-                          <td className="px-3 py-2 text-gray-700">{lifter.points !== null ? lifter.points.toFixed(2) : "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <ResponsiveTable
+                  data={topLifters?.map((lifter, index) => ({
+                    ...lifter,
+                    rank: `#${index + 1}`,
+                    totalFormatted: lifter.total.toFixed(1),
+                    sinclairFormatted: lifter.sinclair !== null ? lifter.sinclair.toFixed(3) : "—",
+                    pointsFormatted: lifter.points !== null ? lifter.points.toFixed(2) : "—",
+                  })) || []}
+                  columns={[
+                    { header: "Rank", accessor: "rank", mobileLabel: "Rank" },
+                    { header: "Athlete", accessor: "userName", mobileLabel: "Athlete" },
+                    { header: "Event", accessor: "eventName", mobileLabel: "Event" },
+                    { header: "Total (kg)", accessor: "totalFormatted", mobileLabel: "Total" },
+                    { header: "Sinclair coeff.", accessor: "sinclairFormatted", mobileLabel: "Sinclair" },
+                    { header: "Points", accessor: "pointsFormatted", mobileLabel: "Points" },
+                  ]}
+                  keyExtractor={(item) => `${item.userId}-${item.eventId}`}
+                  emptyMessage="No lifts recorded yet."
+                />
               )}
             </CardContent>
           </Card>
