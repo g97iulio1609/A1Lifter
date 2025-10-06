@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { useEvents } from "@/hooks/api/use-events"
 import { useAttempts } from "@/hooks/api/use-attempts"
@@ -9,6 +9,7 @@ import { useRealtimeAttempts } from "@/hooks/api/use-realtime"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useI18n } from "@/components/i18n/I18nProvider"
 import {
   Select,
   SelectContent,
@@ -16,13 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Trophy, TrendingUp, Activity, Zap } from "lucide-react"
+import { ArrowLeft, Trophy, TrendingUp, Activity, Zap, Play, Video } from "lucide-react"
 import Link from "next/link"
 
 export default function LivePage() {
   const { data: session } = useSession()
   const { data: events, isLoading: eventsLoading } = useEvents()
   const [selectedEventId, setSelectedEventId] = useState<string>("")
+  const { t } = useI18n()
 
   const { data: attempts, isLoading: attemptsLoading } = useAttempts(
     selectedEventId || undefined
@@ -35,12 +37,16 @@ export default function LivePage() {
   useRealtimeAttempts(selectedEventId || undefined)
 
   // Filter only active events
-  const activeEvents = events?.filter((e) => e.status === "IN_PROGRESS") || []
+  const activeEvents = events?.filter((e) => e.status === "IN_PROGRESS" || e.liveStreamActive) || []
+  const selectedEvent = useMemo(
+    () => events?.find((event) => event.id === selectedEventId),
+    [events, selectedEventId]
+  )
 
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Please sign in to view live results.</p>
+        <p>{t("live.title", "Live Results")}</p>
       </div>
     )
   }
@@ -62,14 +68,14 @@ export default function LivePage() {
                 </Button>
               </Link>
               <div>
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-2xl font-bold text-gray-900">Live Results</h1>
+              <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl font-bold text-gray-900">{t("live.title", "Live Results")}</h1>
                   <Badge variant="default" className="animate-pulse">
                     <Activity className="h-3 w-3 mr-1" />
                     LIVE
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-600">Real-time competition updates</p>
+                <p className="text-sm text-gray-600">{t("live.subtitle", "Real-time competition updates")}</p>
               </div>
             </div>
           </div>
@@ -89,7 +95,7 @@ export default function LivePage() {
               ) : activeEvents.length > 0 ? (
                 <Select value={selectedEventId} onValueChange={setSelectedEventId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a competition to view live results" />
+                    <SelectValue placeholder={t("live.select", "Choose a competition to view live results") ?? undefined} />
                   </SelectTrigger>
                   <SelectContent>
                     {activeEvents.map((event) => (
@@ -101,7 +107,7 @@ export default function LivePage() {
                 </Select>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-gray-600">No active competitions at the moment</p>
+                  <p className="text-gray-600">{t("live.noActive", "No active competitions at the moment")}</p>
                 </div>
               )}
             </CardContent>
@@ -109,6 +115,51 @@ export default function LivePage() {
 
           {selectedEventId && (
             <>
+              {selectedEvent?.liveStreamUrl && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Video className="mr-2 h-5 w-5" />
+                      {t("live.watchStream", "Livestream")}
+                    </CardTitle>
+                    <p className="text-sm text-gray-500">{selectedEvent.name}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedEvent.liveStreamEmbed ? (
+                      <div className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-black">
+                        <iframe
+                          src={selectedEvent.liveStreamEmbed}
+                          className="h-full w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title={`${selectedEvent.name} livestream`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-600">
+                        <p>{t("live.streamProvided", "The organizer has provided a livestream link for this competition.")}</p>
+                        <a
+                          href={selectedEvent.liveStreamUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                        >
+                          <Play className="h-4 w-4" /> {t("live.openStream", "Open stream")}
+                        </a>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Stream status:</span>
+                      <span className={selectedEvent.liveStreamActive ? "text-green-600" : "text-gray-500"}>
+                        {selectedEvent.liveStreamActive
+                          ? t("live.streamStatus.featured", "Featured")
+                          : t("live.streamStatus.offline", "Offline")}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Leaderboard */}
               <Card className="mb-6">
                 <CardHeader>
@@ -225,6 +276,16 @@ export default function LivePage() {
                             <p className="text-xs text-gray-500">
                               {new Date(attempt.createdAt).toLocaleTimeString()}
                             </p>
+                            {attempt.videoUrl && (
+                              <a
+                                href={attempt.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                              >
+                                <Play className="h-3 w-3" /> Watch
+                              </a>
+                            )}
                           </div>
                         </div>
                       ))}

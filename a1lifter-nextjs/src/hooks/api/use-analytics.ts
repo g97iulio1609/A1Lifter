@@ -32,3 +32,24 @@ export function useTopLifters(limit: number = 5) {
     },
   })
 }
+
+export interface AnalyticsTrendData {
+  attemptsPerDay: Array<{ date: string; total: number; good: number; noLift: number; disqualified: number }>
+  liftAverages: Array<{ lift: string; average: number }>
+  resultDistribution: Array<{ result: string; count: number }>
+  participationByGender: Array<{ gender: string; athletes: number }>
+}
+
+export function useAnalyticsTrends(days: number = 14) {
+  return useQuery({
+    queryKey: ["analytics", "trends", days],
+    queryFn: async (): Promise<AnalyticsTrendData> => {
+      const response = await fetch(`${API_BASE}/analytics/trends?days=${days}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch analytics trends")
+      }
+      const data = await response.json()
+      return data.data
+    },
+  })
+}

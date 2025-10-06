@@ -5,11 +5,12 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useDashboardStats } from "@/hooks/api/use-dashboard"
 import { useEvents } from "@/hooks/api/use-events"
-import { useTopLifters } from "@/hooks/api/use-analytics"
+import { useTopLifters, useAnalyticsTrends } from "@/hooks/api/use-analytics"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ResponsiveTable } from "@/components/ui/responsive-table"
+import { useI18n } from "@/components/i18n/I18nProvider"
 import {
   BarChart3,
   Users,
@@ -20,6 +21,21 @@ import {
   Download,
   FileDown,
 } from "lucide-react"
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts"
 import { exportDashboardStats, exportTopLifters } from "@/lib/export"
 
 export default function AnalyticsPage() {
@@ -27,6 +43,8 @@ export default function AnalyticsPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: events, isLoading: eventsLoading } = useEvents()
   const { data: topLifters, isLoading: topLiftersLoading } = useTopLifters(5)
+  const { data: trendData, isLoading: trendsLoading } = useAnalyticsTrends(14)
+  const { t } = useI18n()
 
   const highlightedEvent = useMemo(() => {
     if (!events || events.length === 0) return null
@@ -50,6 +68,8 @@ export default function AnalyticsPage() {
     const denominator = Math.max(1, stats.totalAthletes ?? 1)
     return Math.min(100, Math.round(((stats.todayResults ?? 0) / denominator) * 100))
   }, [stats, events])
+
+  const chartPalette = ["#4f46e5", "#22c55e", "#ef4444", "#f97316"]
 
   if (!session) {
     return (
@@ -86,8 +106,8 @@ export default function AnalyticsPage() {
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Analytics</h1>
-            <p className="mt-2 text-sm text-gray-600 md:text-base">Realtime KPIs for competitions, athletes, and records.</p>
+            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{t("analytics.title", "Analytics")}</h1>
+            <p className="mt-2 text-sm text-gray-600 md:text-base">{t("analytics.subtitle", "Realtime KPIs for competitions, athletes, and records.")}</p>
           </div>
           <Link href="/dashboard">
             <Button variant="outline" className="min-h-[44px] w-full sm:w-auto">
@@ -152,6 +172,139 @@ export default function AnalyticsPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
               ) : (
                 <p className="text-3xl font-semibold text-gray-900">{stats?.recordsBroken ?? 0}</p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Attempt volume (last 14 days)</CardTitle>
+              <CardDescription>Official attempts recorded per day.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[320px]">
+              {trendsLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                </div>
+              ) : trendData && trendData.attemptsPerDay.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData.attemptsPerDay}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} />
+                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} allowDecimals={false} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="total" stroke={chartPalette[0]} strokeWidth={2} dot={false} name="Total" />
+                    <Line type="monotone" dataKey="good" stroke={chartPalette[1]} strokeWidth={2} dot={false} name="Good" />
+                    <Line type="monotone" dataKey="noLift" stroke={chartPalette[2]} strokeWidth={2} dot={false} name="No lift" />
+                    <Line
+                      type="monotone"
+                      dataKey="disqualified"
+                      stroke={chartPalette[3]}
+                      strokeWidth={2}
+                      dot={false}
+                      name="Disqualified"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                  No attempt data available.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Average successful lift (kg)</CardTitle>
+              <CardDescription>Mean weight for all good attempts by lift type.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[320px]">
+              {trendsLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                </div>
+              ) : trendData && trendData.liftAverages.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={trendData.liftAverages}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="lift" stroke="#64748b" fontSize={12} tickLine={false} />
+                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
+                    <Tooltip />
+                    <Bar dataKey="average" fill={chartPalette[0]} radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                  No lift data recorded yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Result distribution</CardTitle>
+              <CardDescription>Share of outcomes for judged attempts.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[320px]">
+              {trendsLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                </div>
+              ) : trendData && trendData.resultDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={trendData.resultDistribution} dataKey="count" nameKey="result" innerRadius={60} outerRadius={100}>
+                      {trendData.resultDistribution.map((entry, index) => (
+                        <Cell key={entry.result} fill={chartPalette[index % chartPalette.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                  No judged attempts for this period.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Participation by gender</CardTitle>
+              <CardDescription>Unique athletes with attempts recorded.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[320px]">
+              {trendsLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                </div>
+              ) : trendData && trendData.participationByGender.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={trendData.participationByGender}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="gender" stroke="#64748b" fontSize={12} tickLine={false} />
+                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="athletes" radius={[6, 6, 0, 0]}>
+                      {trendData.participationByGender.map((entry, index) => (
+                        <Cell key={entry.gender} fill={chartPalette[index % chartPalette.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                  No participation data available.
+                </div>
               )}
             </CardContent>
           </Card>

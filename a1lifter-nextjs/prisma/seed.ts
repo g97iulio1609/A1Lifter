@@ -155,6 +155,9 @@ async function main() {
       location: 'Rome Convention Center',
       maxAthletes: 100,
       organizerId: organizer.id,
+      liveStreamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      liveStreamEmbed: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      liveStreamActive: true,
     }
   })
   console.log(`✅ Created event: ${powerliftingEvent.name}`)
@@ -170,6 +173,7 @@ async function main() {
       location: 'Milan Sports Arena',
       maxAthletes: 80,
       organizerId: organizer.id,
+      liveStreamUrl: 'https://live.a1lifter.com/weightlifting',
     }
   })
   console.log(`✅ Created event: ${weightliftingEvent.name}`)

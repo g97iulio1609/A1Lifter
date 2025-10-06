@@ -17,6 +17,9 @@ export interface BaseEvent {
   endDate: Date
   location: string
   maxAthletes?: number | null
+  liveStreamUrl?: string | null
+  liveStreamEmbed?: string | null
+  liveStreamActive?: boolean
 }
 
 export interface BaseCategory {
@@ -137,6 +140,9 @@ export interface EventFormData {
   location: string
   maxAthletes?: number
   organizerId?: string
+  liveStreamUrl?: string
+  liveStreamEmbed?: string
+  liveStreamActive?: boolean
 }
 
 export interface CategoryFormData {
@@ -152,4 +158,6 @@ export interface AttemptFormData {
   weight: number
   lift: string
   attemptNumber: number
+  notes?: string
+  videoUrl?: string
 }

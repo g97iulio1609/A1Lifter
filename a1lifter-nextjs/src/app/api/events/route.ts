@@ -88,6 +88,9 @@ export async function POST(request: NextRequest) {
         location: body.location,
         maxAthletes: body.maxAthletes,
         organizerId: organizerId,
+        liveStreamUrl: body.liveStreamUrl,
+        liveStreamEmbed: body.liveStreamEmbed,
+        liveStreamActive: Boolean(body.liveStreamActive),
       },
       include: {
         organizer: {

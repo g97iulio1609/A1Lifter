@@ -4,6 +4,8 @@
 
 import { prisma } from "@/lib/db"
 import { Prisma } from "@prisma/client"
+import { EmailService } from "@/lib/email/service"
+import { attemptResultTemplate } from "@/lib/email/templates"
 import type {
   CreateAttemptInput,
   UpdateAttemptInput,
@@ -207,6 +209,21 @@ export class AttemptService {
   static async updateAttempt(id: string, data: UpdateAttemptInput | JudgeAttemptInput, judgedBy?: string) {
     const attempt = await prisma.attempt.findUnique({
       where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     })
 
     if (!attempt) {
@@ -244,23 +261,60 @@ export class AttemptService {
 
     // Create notification for athlete
     if ((data as JudgeAttemptInput).result && (data as JudgeAttemptInput).result !== "PENDING") {
-      await prisma.notification.create({
-        data: {
-          userId: attempt.userId,
-          type: "RESULT_POSTED",
-          title: "Attempt Result",
-          message: `Your ${attempt.lift} attempt #${attempt.attemptNumber} was judged: ${(data as JudgeAttemptInput).result}`,
+      await prisma.notification
+        .create({
           data: {
-            attemptId: id,
-            result: (data as JudgeAttemptInput).result,
-            weight: attempt.weight,
+            userId: attempt.userId,
+            type: "RESULT_POSTED",
+            title: "Attempt Result",
+            message: `Your ${attempt.lift} attempt #${attempt.attemptNumber} was judged: ${(data as JudgeAttemptInput).result}`,
+            data: {
+              attemptId: id,
+              result: (data as JudgeAttemptInput).result,
+              weight: attempt.weight,
+            },
           },
-        },
-      }).catch(err => {
-        console.error("Failed to create notification:", err)
-        // Don't fail the update if notification creation fails
-      })
+        })
+        .catch((err) => {
+          console.error("Failed to create notification:", err)
+          // Don't fail the update if notification creation fails
+        })
+
+      if (EmailService.isConfigured() && attempt.user?.email) {
+        const template = attemptResultTemplate({
+          athleteName: attempt.user.name || attempt.user.email,
+          eventName: attempt.event?.name || "your competition",
+          lift: attempt.lift,
+          weight: attempt.weight,
+          attemptNumber: attempt.attemptNumber,
+          result: (data as JudgeAttemptInput).result,
+          judgedAt: new Date(),
+          videoUrl: updated.videoUrl,
+        })
+
+        await EmailService.sendMail({
+          to: attempt.user.email,
+          subject: template.subject,
+          text: template.text,
+          html: template.html,
+        })
+      }
     }
+
+    return updated
+  }
+
+  /**
+   * Attach a video URL to an attempt
+   */
+  static async attachVideo(attemptId: string, videoUrl: string) {
+    const updated = await prisma.attempt.update({
+      where: { id: attemptId },
+      data: {
+        videoUrl,
+      },
+      include: attemptInclude,
+    })
 
     return updated
   }
