@@ -1,0 +1,123 @@
+{
+  "common": {
+    "appName": "A1Lifter",
+    "welcome": "Benvenuto",
+    "login": "Accedi",
+    "logout": "Esci",
+    "register": "Registrati",
+    "submit": "Invia",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "back": "Indietro",
+    "next": "Avanti",
+    "search": "Cerca",
+    "filter": "Filtra",
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo",
+    "noData": "Nessun dato disponibile"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "events": "Eventi",
+    "athletes": "Atleti",
+    "judge": "Interfaccia Giudice",
+    "live": "Risultati Live",
+    "analytics": "Analisi",
+    "registrations": "Iscrizioni",
+    "settings": "Impostazioni"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalAthletes": "Totale Atleti",
+    "totalEvents": "Totale Eventi",
+    "activeCompetitions": "Competizioni Attive",
+    "recordsBroken": "Record Battuti",
+    "quickActions": "Azioni Rapide",
+    "createCompetition": "Crea Competizione",
+    "judgeInterface": "Interfaccia Giudice",
+    "liveResults": "Risultati Live",
+    "viewAnalytics": "Visualizza Analisi"
+  },
+  "events": {
+    "title": "Eventi",
+    "createEvent": "Crea Evento",
+    "eventName": "Nome Evento",
+    "eventDescription": "Descrizione Evento",
+    "location": "Località",
+    "startDate": "Data Inizio",
+    "endDate": "Data Fine",
+    "sport": "Sport",
+    "status": "Stato",
+    "maxAthletes": "Massimo Atleti",
+    "registrations": "Iscrizioni"
+  },
+  "athletes": {
+    "title": "Atleti",
+    "name": "Nome",
+    "email": "Email",
+    "role": "Ruolo",
+    "status": "Stato",
+    "active": "Attivo",
+    "inactive": "Inattivo"
+  },
+  "attempts": {
+    "title": "Tentativi",
+    "lift": "Alzata",
+    "weight": "Peso",
+    "result": "Risultato",
+    "attemptNumber": "Numero Tentativo",
+    "pending": "In Attesa",
+    "good": "Valido",
+    "noLift": "Non Valido",
+    "disqualified": "Squalificato",
+    "uploadVideo": "Carica Video",
+    "videoUrl": "URL Video"
+  },
+  "judge": {
+    "title": "Interfaccia Giudice",
+    "selectCompetition": "Seleziona Competizione",
+    "currentAttempt": "Tentativo Corrente",
+    "makeDecision": "Prendi Decisione",
+    "approveAttempt": "Approva Tentativo",
+    "rejectAttempt": "Rifiuta Tentativo"
+  },
+  "live": {
+    "title": "Risultati Live",
+    "leaderboard": "Classifica",
+    "recentAttempts": "Tentativi Recenti",
+    "autoUpdating": "Aggiornamento Automatico"
+  },
+  "analytics": {
+    "title": "Analisi",
+    "charts": "Grafici",
+    "statistics": "Statistiche",
+    "performance": "Prestazioni",
+    "topLifters": "Migliori Sollevatori",
+    "exportData": "Esporta Dati"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "markAsRead": "Segna come Letto",
+    "markAllAsRead": "Segna Tutto come Letto",
+    "noNotifications": "Nessuna notifica",
+    "registrationApproved": "Iscrizione Approvata",
+    "registrationRejected": "Iscrizione Rifiutata",
+    "attemptUpcoming": "Tentativo Imminente",
+    "resultPosted": "Risultato Pubblicato",
+    "eventUpdate": "Aggiornamento Evento"
+  },
+  "email": {
+    "subject": {
+      "registrationApproved": "La tua iscrizione è stata approvata",
+      "registrationRejected": "La tua iscrizione è stata rifiutata",
+      "attemptUpcoming": "Il tuo tentativo sta per iniziare",
+      "resultPosted": "Il tuo risultato è stato pubblicato",
+      "eventUpdate": "Aggiornamento evento"
+    },
+    "greeting": "Ciao",
+    "footer": "Grazie per aver usato A1Lifter"
+  }
+}

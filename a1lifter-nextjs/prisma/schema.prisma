@@ -86,6 +86,7 @@ model Event {
   location      String
   maxAthletes   Int?
   organizerId   String
+  streamUrl     String?
   isDeleted     Boolean        @default(false)
   deletedAt     DateTime?
   createdAt     DateTime       @default(now())

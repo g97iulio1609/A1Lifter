@@ -1,0 +1,123 @@
+{
+  "common": {
+    "appName": "A1Lifter",
+    "welcome": "Welcome",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "noData": "No data available"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "events": "Events",
+    "athletes": "Athletes",
+    "judge": "Judge Interface",
+    "live": "Live Results",
+    "analytics": "Analytics",
+    "registrations": "Registrations",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalAthletes": "Total Athletes",
+    "totalEvents": "Total Events",
+    "activeCompetitions": "Active Competitions",
+    "recordsBroken": "Records Broken",
+    "quickActions": "Quick Actions",
+    "createCompetition": "Create Competition",
+    "judgeInterface": "Judge Interface",
+    "liveResults": "Live Results",
+    "viewAnalytics": "View Analytics"
+  },
+  "events": {
+    "title": "Events",
+    "createEvent": "Create Event",
+    "eventName": "Event Name",
+    "eventDescription": "Event Description",
+    "location": "Location",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "sport": "Sport",
+    "status": "Status",
+    "maxAthletes": "Max Athletes",
+    "registrations": "Registrations"
+  },
+  "athletes": {
+    "title": "Athletes",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "attempts": {
+    "title": "Attempts",
+    "lift": "Lift",
+    "weight": "Weight",
+    "result": "Result",
+    "attemptNumber": "Attempt Number",
+    "pending": "Pending",
+    "good": "Good",
+    "noLift": "No Lift",
+    "disqualified": "Disqualified",
+    "uploadVideo": "Upload Video",
+    "videoUrl": "Video URL"
+  },
+  "judge": {
+    "title": "Judge Interface",
+    "selectCompetition": "Select Competition",
+    "currentAttempt": "Current Attempt",
+    "makeDecision": "Make Decision",
+    "approveAttempt": "Approve Attempt",
+    "rejectAttempt": "Reject Attempt"
+  },
+  "live": {
+    "title": "Live Results",
+    "leaderboard": "Leaderboard",
+    "recentAttempts": "Recent Attempts",
+    "autoUpdating": "Auto-updating"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "charts": "Charts",
+    "statistics": "Statistics",
+    "performance": "Performance",
+    "topLifters": "Top Lifters",
+    "exportData": "Export Data"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAsRead": "Mark as Read",
+    "markAllAsRead": "Mark All as Read",
+    "noNotifications": "No notifications",
+    "registrationApproved": "Registration Approved",
+    "registrationRejected": "Registration Rejected",
+    "attemptUpcoming": "Attempt Upcoming",
+    "resultPosted": "Result Posted",
+    "eventUpdate": "Event Update"
+  },
+  "email": {
+    "subject": {
+      "registrationApproved": "Your registration has been approved",
+      "registrationRejected": "Your registration has been rejected",
+      "attemptUpcoming": "Your attempt is coming up",
+      "resultPosted": "Your result has been posted",
+      "eventUpdate": "Event update"
+    },
+    "greeting": "Hello",
+    "footer": "Thank you for using A1Lifter"
+  }
+}
