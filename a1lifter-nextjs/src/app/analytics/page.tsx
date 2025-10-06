@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useDashboardStats } from "@/hooks/api/use-dashboard"
 import { useEvents } from "@/hooks/api/use-events"
+import { useTopLifters } from "@/hooks/api/use-analytics"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +22,7 @@ export default function AnalyticsPage() {
   const { data: session } = useSession()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: events, isLoading: eventsLoading } = useEvents()
+  const { data: topLifters, isLoading: topLiftersLoading } = useTopLifters(5)
 
   const highlightedEvent = useMemo(() => {
     if (!events || events.length === 0) return null
@@ -209,6 +211,51 @@ export default function AnalyticsPage() {
                   <span className="font-semibold text-gray-900">{stats?.activeCompetitions ?? 0}</span>
                 </li>
               </ul>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Sinclair Performers</CardTitle>
+              <CardDescription>Leaders across all events by Sinclair points.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {topLiftersLoading ? (
+                <div className="flex h-40 items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                </div>
+              ) : !topLifters || topLifters.length === 0 ? (
+                <p className="text-sm text-gray-500">No lifts recorded yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Rank</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Athlete</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Event</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Total (kg)</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Sinclair coeff.</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {topLifters.map((lifter, index) => (
+                        <tr key={`${lifter.userId}-${lifter.eventId}`}>
+                          <td className="px-3 py-2 font-semibold text-gray-700">#{index + 1}</td>
+                          <td className="px-3 py-2 text-gray-700">{lifter.userName}</td>
+                          <td className="px-3 py-2 text-gray-700">{lifter.eventName}</td>
+                          <td className="px-3 py-2 text-gray-700">{lifter.total.toFixed(1)}</td>
+                          <td className="px-3 py-2 text-gray-700">{lifter.sinclair !== null ? lifter.sinclair.toFixed(3) : "—"}</td>
+                          <td className="px-3 py-2 text-gray-700">{lifter.points !== null ? lifter.points.toFixed(2) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>

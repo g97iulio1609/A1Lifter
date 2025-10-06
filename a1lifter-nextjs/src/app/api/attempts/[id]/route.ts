@@ -83,7 +83,7 @@ export async function PATCH(
     const validatedData = UpdateAttemptSchema.parse(body)
 
     // Update attempt using service
-    const updatedAttempt = await AttemptService.updateAttempt(id, validatedData)
+    const updatedAttempt = await AttemptService.updateAttempt(id, validatedData, session.user.id)
 
     return NextResponse.json({
       success: true,
@@ -96,6 +96,13 @@ export async function PATCH(
       return NextResponse.json(
         { error: "Validation error", details: error.issues },
         { status: 400 }
+      )
+    }
+
+    if (error instanceof Error && error.message.includes("locked")) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 409 }
       )
     }
     
@@ -130,8 +137,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Use service to delete (though we may want to add this method to service)
-    await AttemptService.updateAttempt(id, { notes: "DELETED" })
+    await AttemptService.deleteAttempt(id)
 
     return NextResponse.json({
       success: true,
@@ -139,6 +145,11 @@ export async function DELETE(
     })
   } catch (error) {
     console.error("Error deleting attempt:", error)
+
+    if (error instanceof Error && error.message.includes("Cannot delete")) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

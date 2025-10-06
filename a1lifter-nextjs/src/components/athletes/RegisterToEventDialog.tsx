@@ -27,8 +27,8 @@ interface Category {
   id: string
   name: string
   gender?: string
-  minWeight?: number
-  maxWeight?: number
+  minWeight?: number | null
+  maxWeight?: number | null
 }
 
 interface Event {
@@ -190,7 +190,7 @@ export function RegisterToEventDialog({ event, onSuccess }: RegisterToEventDialo
                 Registration Successful!
               </DialogTitle>
               <DialogDescription>
-                You've been successfully registered for {event.name}. You'll receive a notification once your registration is approved.
+                You&rsquo;ve been successfully registered for {event.name}. You&rsquo;ll receive a notification once your registration is approved.
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-lg bg-green-50 border border-green-200 p-4">

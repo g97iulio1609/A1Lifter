@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { NotificationsMenu } from "./NotificationsMenu"
 
 type Role = "ADMIN" | "ORGANIZER" | "JUDGE" | "ATHLETE"
 
@@ -201,6 +202,7 @@ export function MainNav() {
         <div className="flex items-center gap-2">
           {session ? (
             <>
+              <NotificationsMenu userId={session.user.id} />
               <span className="hidden text-sm text-slate-600 sm:inline">{session.user.email}</span>
               <Button variant="ghost" size="icon" aria-label="Sign out" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />

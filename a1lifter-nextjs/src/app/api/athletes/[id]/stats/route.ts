@@ -22,7 +22,7 @@ export async function GET(
     // Use service to get athlete attempts with summary
     let attemptData
     if (eventId) {
-      attemptData = await AttemptService.getAthleteAttempts(id, eventId)
+      attemptData = await AttemptService.getAthleteAttempts(eventId, id)
     }
 
     // Get additional registration and record statistics

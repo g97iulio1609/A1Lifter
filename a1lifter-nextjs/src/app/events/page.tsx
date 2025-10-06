@@ -19,7 +19,6 @@ import {
   ArrowLeft,
   Pencil,
   Trash2,
-  Eye,
   Plus,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -187,8 +186,9 @@ export default function EventsPage() {
 
               // Check if user is already registered
               const userRegistrations = event.registrations || []
-              const isRegistered = Array.isArray(userRegistrations) &&
-                userRegistrations.some((reg: any) => reg.userId === session?.user?.id)
+              const isRegistered =
+                Array.isArray(userRegistrations) &&
+                userRegistrations.some((reg: { userId?: string }) => reg.userId === session?.user?.id)
 
               return (
                 <Card

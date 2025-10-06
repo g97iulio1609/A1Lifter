@@ -7,6 +7,7 @@ import { z } from "zod"
 // Enums
 export const LiftTypeSchema = z.enum(["SNATCH", "CLEAN_AND_JERK"])
 export const AttemptResultSchema = z.enum(["PENDING", "GOOD", "NO_LIFT", "DISQUALIFIED"])
+export const AttemptStatusSchema = z.enum(["QUEUED", "IN_PROGRESS", "COMPLETED"])
 
 // Create Attempt Schema
 export const CreateAttemptSchema = z.object({
@@ -25,8 +26,15 @@ export const UpdateAttemptSchema = z.object({
   result: AttemptResultSchema.optional(),
   weight: z.number().positive("Weight must be positive").optional(),
   notes: z.string().optional(),
-  judgedAt: z.string().datetime().optional(),
-  judgedBy: z.string().optional(),
+  judgeScores: z
+    .object({
+      judge1: z.boolean().optional(),
+      judge2: z.boolean().optional(),
+      judge3: z.boolean().optional(),
+      headJudge: z.boolean().optional(),
+    })
+    .optional(),
+  videoUrl: z.string().url().optional(),
 })
 
 // Judge Attempt Schema (for judges to record results)
@@ -36,6 +44,15 @@ export const JudgeAttemptSchema = z.object({
     "Result must be GOOD, NO_LIFT, or DISQUALIFIED"
   ),
   notes: z.string().optional(),
+  judgeScores: z
+    .object({
+      judge1: z.boolean().optional(),
+      judge2: z.boolean().optional(),
+      judge3: z.boolean().optional(),
+      headJudge: z.boolean().optional(),
+    })
+    .optional(),
+  videoUrl: z.string().url().optional(),
 })
 
 // Query Params Schema
@@ -45,6 +62,7 @@ export const AttemptQuerySchema = z.object({
   categoryId: z.string().optional(),
   lift: LiftTypeSchema.optional(),
   result: AttemptResultSchema.optional(),
+  status: AttemptStatusSchema.optional(),
   limit: z.coerce.number().int().positive().max(100).default(50).optional(),
   offset: z.coerce.number().int().nonnegative().default(0).optional(),
 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { AttemptService } from "@/lib/services/attempt-service"
+import { AttemptQuerySchema } from "@/lib/validations/attempts"
 import { z } from "zod"
 
 export async function GET(
@@ -17,19 +18,22 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId") || undefined
-    const lift = searchParams.get("lift") as "SNATCH" | "CLEAN_AND_JERK" | undefined
-    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined
-    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined
+
+    const queryParams = {
+      eventId,
+      userId: searchParams.get("userId") || undefined,
+      categoryId: searchParams.get("categoryId") || undefined,
+      lift: searchParams.get("lift") || undefined,
+      result: searchParams.get("result") || undefined,
+      status: searchParams.get("status") || undefined,
+      limit: searchParams.get("limit") || undefined,
+      offset: searchParams.get("offset") || undefined,
+    }
+
+    const parsedQuery = AttemptQuerySchema.parse(queryParams)
 
     // Use service to get attempts
-    const result = await AttemptService.getAttempts({
-      eventId,
-      userId,
-      lift,
-      limit,
-      offset,
-    })
+    const result = await AttemptService.getAttempts(parsedQuery)
 
     return NextResponse.json({
       success: true,

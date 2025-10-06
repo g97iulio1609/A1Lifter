@@ -28,7 +28,7 @@ export async function PATCH(
     const validatedData = JudgeAttemptSchema.parse(body)
 
     // Update attempt using service (which handles records and notifications)
-    const updatedAttempt = await AttemptService.updateAttempt(id, validatedData)
+    const updatedAttempt = await AttemptService.updateAttempt(id, validatedData, session.user.id)
 
     return NextResponse.json({
       success: true,
@@ -41,6 +41,13 @@ export async function PATCH(
       return NextResponse.json(
         { error: "Validation error", details: error.issues },
         { status: 400 }
+      )
+    }
+
+    if (error instanceof Error && error.message.includes("locked")) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 409 }
       )
     }
     

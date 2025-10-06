@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { calculateSinclairPoints } from "@/lib/analytics/sinclair"
 
 export async function GET(
   request: NextRequest,
@@ -67,10 +68,12 @@ export async function GET(
         categoryId: string
         categoryName: string
         gender: string
-        bodyWeight: number
+        bodyWeight: number | null
         lifts: Record<string, number>
         total: number
         attempts: AttemptType[]
+        points: number | null
+        sinclair: number | null
       }
     >()
 
@@ -83,10 +86,12 @@ export async function GET(
           categoryId: attempt.categoryId,
           categoryName: attempt.category.name,
           gender: attempt.category.gender,
-          bodyWeight: attempt.registration?.bodyWeight || 0,
+          bodyWeight: attempt.registration?.bodyWeight ?? null,
           lifts: {} as Record<string, number>,
           total: 0,
           attempts: [],
+          points: null,
+          sinclair: null,
         })
       }
 
@@ -101,10 +106,31 @@ export async function GET(
     })
 
     // Calculate totals and sort
-    const leaderboard = Array.from(athleteScores.values()).map((score) => {
-      score.total = Object.values(score.lifts).reduce((sum: number, weight) => sum + (weight as number), 0)
-      return score
-    }).sort((a, b) => b.total - a.total)
+    const leaderboard = Array.from(athleteScores.values())
+      .map((score) => {
+        score.total = Object.values(score.lifts).reduce((sum: number, weight) => sum + (weight as number), 0)
+
+        const genderKey = score.gender === "FEMALE" ? "FEMALE" : score.gender === "MALE" ? "MALE" : null
+        if (genderKey) {
+          const { coefficient, points } = calculateSinclairPoints(
+            score.total,
+            score.bodyWeight,
+            genderKey
+          )
+          score.sinclair = coefficient
+          score.points = points
+        }
+
+        return score
+      })
+      .sort((a, b) => {
+        const pointsA = a.points ?? -Infinity
+        const pointsB = b.points ?? -Infinity
+        if (pointsA !== pointsB) {
+          return pointsB - pointsA
+        }
+        return b.total - a.total
+      })
 
     return NextResponse.json({
       success: true,

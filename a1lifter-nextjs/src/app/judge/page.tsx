@@ -3,8 +3,12 @@
 import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { useEvents } from "@/hooks/api/use-events"
-import { useCurrentAttempt } from "@/hooks/api/use-attempts"
-import { useJudgeAttempt } from "@/hooks/api/use-attempts"
+import {
+  useCurrentAttempt,
+  useJudgeAttempt,
+  useClaimAttempt,
+  useReleaseAttempt,
+} from "@/hooks/api/use-attempts"
 import { useRealtimeAttempts } from "@/hooks/api/use-realtime"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +29,8 @@ export default function JudgePage() {
   const { data: events, isLoading: eventsLoading } = useEvents()
   const [selectedEventId, setSelectedEventId] = useState<string>("")
   const judgeAttempt = useJudgeAttempt()
+  const claimAttempt = useClaimAttempt(selectedEventId || undefined)
+  const releaseAttempt = useReleaseAttempt(selectedEventId || undefined)
 
   const { data: currentAttempt, isLoading: attemptLoading } = useCurrentAttempt(
     selectedEventId || undefined
@@ -62,6 +68,32 @@ export default function JudgePage() {
         </div>
       </div>
     )
+  }
+
+  const handleClaim = async () => {
+    if (!selectedEventId) return
+
+    try {
+      await claimAttempt.mutateAsync()
+      toast.success("Attempt claimed")
+    } catch (error) {
+      toast.error("Failed to claim attempt", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      })
+    }
+  }
+
+  const handleRelease = async () => {
+    if (!currentAttempt) return
+
+    try {
+      await releaseAttempt.mutateAsync(currentAttempt.id)
+      toast.success("Attempt released")
+    } catch (error) {
+      toast.error("Failed to release attempt", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      })
+    }
   }
 
   const handleJudge = async (result: "GOOD" | "NO_LIFT" | "DISQUALIFIED") => {
@@ -163,7 +195,34 @@ export default function JudgePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {/* Athlete Info */}
+                      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                        <Badge
+                          variant={
+                            currentAttempt.status === "IN_PROGRESS" ? "default" : "secondary"
+                          }
+                        >
+                          Status: {currentAttempt.status.replaceAll("_", " ")}
+                        </Badge>
+
+                        {currentAttempt.status === "QUEUED" ? (
+                          <Button onClick={handleClaim} disabled={claimAttempt.isPending}>
+                            {claimAttempt.isPending ? "Claiming..." : "Claim attempt"}
+                          </Button>
+                        ) : currentAttempt.lockedBy === session?.user.id ? (
+                          <Button
+                            variant="outline"
+                            onClick={handleRelease}
+                            disabled={releaseAttempt.isPending}
+                          >
+                            {releaseAttempt.isPending ? "Releasing..." : "Release attempt"}
+                          </Button>
+                        ) : (
+                          <p className="text-sm text-gray-500">
+                            Locked by {currentAttempt.lockedByUser?.name || "another judge"}
+                          </p>
+                        )}
+                      </div>
+
                       <div className="text-center">
                         <h2 className="text-4xl font-bold mb-2">
                           {currentAttempt.user.name}
@@ -173,7 +232,6 @@ export default function JudgePage() {
                         </Badge>
                       </div>
 
-                      {/* Lift Details */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
                         <div className="text-center">
                           <p className="text-sm text-gray-600 mb-2">Lift Type</p>
@@ -191,7 +249,6 @@ export default function JudgePage() {
                         </div>
                       </div>
 
-                      {/* Registration Details */}
                       {currentAttempt.registration && (
                         <div className="grid grid-cols-3 gap-4 text-center">
                           {currentAttempt.registration.lot && (
@@ -221,47 +278,54 @@ export default function JudgePage() {
                         </div>
                       )}
 
-                      {/* Judge Buttons */}
-                      <div className="grid grid-cols-3 gap-4 pt-4">
-                        <Button
-                          size="lg"
-                          className="h-24 text-lg bg-green-600 hover:bg-green-700"
-                          onClick={() => handleJudge("GOOD")}
-                          disabled={judgeAttempt.isPending}
-                        >
-                          <CheckCircle className="h-8 w-8 mr-2" />
-                          GOOD LIFT
-                        </Button>
-                        <Button
-                          size="lg"
-                          className="h-24 text-lg bg-red-600 hover:bg-red-700"
-                          onClick={() => handleJudge("NO_LIFT")}
-                          disabled={judgeAttempt.isPending}
-                        >
-                          <XCircle className="h-8 w-8 mr-2" />
-                          NO LIFT
-                        </Button>
-                        <Button
-                          size="lg"
-                          variant="destructive"
-                          className="h-24 text-lg"
-                          onClick={() => handleJudge("DISQUALIFIED")}
-                          disabled={judgeAttempt.isPending}
-                        >
-                          <AlertCircle className="h-8 w-8 mr-2" />
-                          DISQUALIFY
-                        </Button>
-                      </div>
+                      {currentAttempt.status === "IN_PROGRESS" && currentAttempt.lockedBy === session?.user.id ? (
+                        <div className="grid grid-cols-1 gap-3 pt-2 md:grid-cols-3">
+                          <Button
+                            size="lg"
+                            className="h-24 text-lg bg-green-600 hover:bg-green-700"
+                            onClick={() => handleJudge("GOOD")}
+                            disabled={judgeAttempt.isPending}
+                          >
+                            <CheckCircle className="h-8 w-8 mr-2" /> GOOD LIFT
+                          </Button>
+                          <Button
+                            size="lg"
+                            className="h-24 text-lg bg-red-600 hover:bg-red-700"
+                            onClick={() => handleJudge("NO_LIFT")}
+                            disabled={judgeAttempt.isPending}
+                          >
+                            <XCircle className="h-8 w-8 mr-2" /> NO LIFT
+                          </Button>
+                          <Button
+                            size="lg"
+                            variant="destructive"
+                            className="h-24 text-lg"
+                            onClick={() => handleJudge("DISQUALIFIED")}
+                            disabled={judgeAttempt.isPending}
+                          >
+                            <AlertCircle className="h-8 w-8 mr-2" /> DISQUALIFY
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="rounded-md border border-dashed border-gray-200 p-4 text-center text-sm text-gray-500">
+                          {currentAttempt.status === "IN_PROGRESS"
+                            ? "Awaiting decision from assigned judge."
+                            : "Claim the attempt to enable judging controls."}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               ) : (
                 <Card>
-                  <CardContent className="py-12 text-center">
-                    <Scale className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No Pending Attempts</h3>
+                  <CardContent className="py-12 text-center space-y-3">
+                    <Scale className="h-16 w-16 text-gray-400 mx-auto" />
+                    <h3 className="text-xl font-semibold">No Pending Attempts</h3>
                     <p className="text-gray-600">
-                      Waiting for the next attempt to be loaded...
+                      Waiting for the next attempt to be loaded. You can claim attempts as soon as the scoring table queues them.
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      This view refreshes automatically every few seconds.
                     </p>
                   </CardContent>
                 </Card>

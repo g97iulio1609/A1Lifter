@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { AttemptService } from "@/lib/services/attempt-service"
 
-export async function GET(
-  request: NextRequest,
+export async function POST(
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -15,22 +15,22 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get current attempt for the event using service
-    const currentAttempt = await AttemptService.getCurrentAttempt(eventId, session.user.id)
+    if (session.user.role !== "JUDGE" && session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
-    if (!currentAttempt) {
-      return NextResponse.json(
-        { error: "No pending attempts" },
-        { status: 404 }
-      )
+    const attempt = await AttemptService.claimAttempt(eventId, session.user.id)
+
+    if (!attempt) {
+      return NextResponse.json({ error: "No attempts to claim" }, { status: 404 })
     }
 
     return NextResponse.json({
       success: true,
-      data: currentAttempt,
+      data: attempt,
     })
   } catch (error) {
-    console.error("Error fetching current attempt:", error)
+    console.error("Error claiming attempt:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

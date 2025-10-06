@@ -4,14 +4,94 @@
 
 import { prisma } from "@/lib/db"
 import { Prisma } from "@prisma/client"
-import type { CreateAttemptInput, UpdateAttemptInput, AttemptQuery } from "@/lib/validations/attempts"
+import type {
+  CreateAttemptInput,
+  UpdateAttemptInput,
+  AttemptQuery,
+  JudgeAttemptInput,
+} from "@/lib/validations/attempts"
+
+const LOCK_TTL_MS = 60_000 // 1 minute stale lock window
+
+const attemptInclude = {
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  event: {
+    select: {
+      id: true,
+      name: true,
+      status: true,
+    },
+  },
+  category: {
+    select: {
+      id: true,
+      name: true,
+      gender: true,
+      minWeight: true,
+      maxWeight: true,
+    },
+  },
+  registration: {
+    select: {
+      id: true,
+      lot: true,
+      platform: true,
+      bodyWeight: true,
+    },
+  },
+  lockedByUser: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  judgedByUser: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+} satisfies Prisma.AttemptInclude
+
+type AttemptWithRelations = Prisma.AttemptGetPayload<{ include: typeof attemptInclude }>
+
+function getStaleLockDate(now: Date) {
+  return new Date(now.getTime() - LOCK_TTL_MS)
+}
+
+async function releaseStaleLocks(eventId: string) {
+  const now = new Date()
+  const staleAt = getStaleLockDate(now)
+
+  await prisma.attempt.updateMany({
+    where: {
+      eventId,
+      status: "IN_PROGRESS",
+      lockedAt: {
+        lt: staleAt,
+      },
+      result: "PENDING",
+    },
+    data: {
+      status: "QUEUED",
+      lockedAt: null,
+      lockedBy: null,
+    },
+  })
+}
 
 export class AttemptService {
   /**
    * Get attempts with optional filters
    */
   static async getAttempts(query: AttemptQuery) {
-    const { eventId, userId, categoryId, lift, result, limit = 50, offset = 0 } = query
+    const { eventId, userId, categoryId, lift, result, status, limit = 50, offset = 0 } = query
 
     const where: Prisma.AttemptWhereInput = {
       ...(eventId && { eventId }),
@@ -19,36 +99,13 @@ export class AttemptService {
       ...(categoryId && { categoryId }),
       ...(lift && { lift }),
       ...(result && { result }),
+      ...(status && { status }),
     }
 
     const [attempts, total] = await Promise.all([
       prisma.attempt.findMany({
         where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          event: {
-            select: {
-              id: true,
-              name: true,
-              status: true,
-            },
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-              gender: true,
-              minWeight: true,
-              maxWeight: true,
-            },
-          },
-        },
+        include: attemptInclude,
         orderBy: [
           { timestamp: "asc" },
           { attemptNumber: "asc" },
@@ -74,18 +131,7 @@ export class AttemptService {
   static async getAttemptById(id: string) {
     const attempt = await prisma.attempt.findUnique({
       where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        event: true,
-        category: true,
-        registration: true,
-      },
+      include: attemptInclude,
     })
 
     if (!attempt) {
@@ -146,29 +192,10 @@ export class AttemptService {
       data: {
         ...data,
         result: "PENDING",
+        status: "QUEUED",
         timestamp: new Date(),
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        event: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      include: attemptInclude,
     })
 
     return attempt
@@ -177,7 +204,7 @@ export class AttemptService {
   /**
    * Update attempt (for judges)
    */
-  static async updateAttempt(id: string, data: UpdateAttemptInput, judgedBy?: string) {
+  static async updateAttempt(id: string, data: UpdateAttemptInput | JudgeAttemptInput, judgedBy?: string) {
     const attempt = await prisma.attempt.findUnique({
       where: { id },
     })
@@ -190,36 +217,42 @@ export class AttemptService {
       throw new Error("Cannot change result of already judged attempt")
     }
 
+    if (
+      (data as JudgeAttemptInput).result &&
+      attempt.status === "IN_PROGRESS" &&
+      attempt.lockedBy &&
+      judgedBy &&
+      attempt.lockedBy !== judgedBy
+    ) {
+      throw new Error("Attempt is locked by another judge")
+    }
+
     const updated = await prisma.attempt.update({
       where: { id },
       data: {
         ...data,
-        ...(data.result && {
+        ...(data as JudgeAttemptInput).result && {
           judgedAt: new Date(),
           judgedBy,
-        }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
+          status: "COMPLETED",
+          lockedAt: null,
+          lockedBy: null,
         },
       },
+      include: attemptInclude,
     })
 
     // Create notification for athlete
-    if (data.result && data.result !== "PENDING") {
+    if ((data as JudgeAttemptInput).result && (data as JudgeAttemptInput).result !== "PENDING") {
       await prisma.notification.create({
         data: {
           userId: attempt.userId,
           type: "RESULT_POSTED",
           title: "Attempt Result",
-          message: `Your ${attempt.lift} attempt #${attempt.attemptNumber} was judged: ${data.result}`,
+          message: `Your ${attempt.lift} attempt #${attempt.attemptNumber} was judged: ${(data as JudgeAttemptInput).result}`,
           data: {
             attemptId: id,
-            result: data.result,
+            result: (data as JudgeAttemptInput).result,
             weight: attempt.weight,
           },
         },
@@ -244,7 +277,7 @@ export class AttemptService {
       throw new Error("Attempt not found")
     }
 
-    if (attempt.result !== "PENDING") {
+    if (attempt.result !== "PENDING" || attempt.status === "IN_PROGRESS") {
       throw new Error("Cannot delete judged attempts")
     }
 
@@ -258,34 +291,58 @@ export class AttemptService {
   /**
    * Get current pending attempt for an event (for live judging)
    */
-  static async getCurrentAttempt(eventId: string) {
-    const attempt = await prisma.attempt.findFirst({
+  static async getCurrentAttempt(eventId: string, judgeId?: string) {
+    await releaseStaleLocks(eventId)
+
+    const include = attemptInclude
+
+    if (judgeId) {
+      const judgeAttempt = await prisma.attempt.findFirst({
+        where: {
+          eventId,
+          result: "PENDING",
+          status: "IN_PROGRESS",
+          lockedBy: judgeId,
+        },
+        include,
+        orderBy: {
+          lockedAt: "asc",
+        },
+      })
+
+      if (judgeAttempt) {
+        return judgeAttempt
+      }
+    }
+
+    const inProgress = await prisma.attempt.findFirst({
       where: {
         eventId,
         result: "PENDING",
+        status: "IN_PROGRESS",
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+      include,
+      orderBy: {
+        lockedAt: "asc",
       },
+    })
+
+    if (inProgress) {
+      return inProgress
+    }
+
+    return prisma.attempt.findFirst({
+      where: {
+        eventId,
+        result: "PENDING",
+        status: "QUEUED",
+      },
+      include,
       orderBy: [
         { timestamp: "asc" },
         { attemptNumber: "asc" },
       ],
     })
-
-    return attempt
   }
 
   /**
@@ -299,6 +356,12 @@ export class AttemptService {
       },
       include: {
         category: true,
+        lockedByUser: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: [
         { lift: "asc" },
@@ -330,5 +393,107 @@ export class AttemptService {
         cleanJerkAttempts: cleanJerkAttempts.length,
       },
     }
+  }
+
+  /**
+   * Claim next attempt for judging with optimistic locking
+   */
+  static async claimAttempt(
+    eventId: string,
+    judgeId: string,
+    options: { autoClaimOnly?: boolean } = {}
+  ): Promise<AttemptWithRelations | null> {
+    await releaseStaleLocks(eventId)
+
+    // Check if judge already has an attempt locked
+    const existing = await prisma.attempt.findFirst({
+      where: {
+        eventId,
+        status: "IN_PROGRESS",
+        lockedBy: judgeId,
+        result: "PENDING",
+      },
+      include: attemptInclude,
+      orderBy: {
+        lockedAt: "asc",
+      },
+    })
+
+    if (existing) {
+      return existing
+    }
+
+    if (options.autoClaimOnly) {
+      return null
+    }
+
+    const now = new Date()
+    const candidate = await prisma.attempt.findFirst({
+      where: {
+        eventId,
+        status: "QUEUED",
+        result: "PENDING",
+      },
+      orderBy: [
+        { timestamp: "asc" },
+        { attemptNumber: "asc" },
+      ],
+    })
+
+    if (!candidate) {
+      return null
+    }
+
+    const updated = await prisma.attempt.updateMany({
+      where: {
+        id: candidate.id,
+        status: "QUEUED",
+        result: "PENDING",
+      },
+      data: {
+        status: "IN_PROGRESS",
+        lockedBy: judgeId,
+        lockedAt: now,
+      },
+    })
+
+    if (updated.count === 0) {
+      // Another judge claimed first, retry recursively
+      return this.claimAttempt(eventId, judgeId, options)
+    }
+
+    return prisma.attempt.findUnique({
+      where: { id: candidate.id },
+      include: attemptInclude,
+    })
+  }
+
+  /**
+   * Release a lock held by a judge (e.g., if they abort judging)
+   */
+  static async releaseAttemptLock(attemptId: string, judgeId: string) {
+    const attempt = await prisma.attempt.findUnique({
+      where: { id: attemptId },
+    })
+
+    if (!attempt || attempt.status !== "IN_PROGRESS") {
+      return null
+    }
+
+    if (attempt.lockedBy !== judgeId) {
+      throw new Error("Cannot release a lock held by another judge")
+    }
+
+    const released = await prisma.attempt.update({
+      where: { id: attemptId },
+      data: {
+        status: "QUEUED",
+        lockedAt: null,
+        lockedBy: null,
+      },
+      include: attemptInclude,
+    })
+
+    return released
   }
 }

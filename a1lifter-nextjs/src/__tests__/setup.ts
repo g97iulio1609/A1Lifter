@@ -48,6 +48,12 @@ vi.mock('@/lib/db', () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    category: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     registration: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -58,9 +64,17 @@ vi.mock('@/lib/db', () => ({
     attempt: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+      count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    notification: {
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
     },
   },
 }))
