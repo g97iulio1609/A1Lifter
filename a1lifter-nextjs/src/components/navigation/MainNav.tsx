@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { NotificationsMenu } from "./NotificationsMenu"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 type Role = "ADMIN" | "ORGANIZER" | "JUDGE" | "ATHLETE"
 
@@ -144,8 +145,8 @@ export function MainNav() {
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                    ? "bg-indigo-600 text-white shadow-sm dark:bg-indigo-500"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100",
                   isMobile && "w-full"
                 )}
               >
@@ -179,11 +180,11 @@ export function MainNav() {
   }
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <nav className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:border-slate-700 dark:bg-slate-900/95 dark:supports-[backdrop-filter]:bg-slate-900/60">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <span className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-bold uppercase tracking-widest text-white">
+          <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <span className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-bold uppercase tracking-widest text-white dark:bg-indigo-500">
               A1
             </span>
             <span>A1Lifter</span>
@@ -200,10 +201,11 @@ export function MainNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {session ? (
             <>
               <NotificationsMenu userId={session.user.id} />
-              <span className="hidden text-sm text-slate-600 sm:inline">{session.user.email}</span>
+              <span className="hidden text-sm text-slate-600 dark:text-slate-300 sm:inline">{session.user.email}</span>
               <Button variant="ghost" size="icon" aria-label="Sign out" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -230,7 +232,7 @@ export function MainNav() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-slate-200 bg-white px-4 py-4 lg:hidden">
+        <div className="border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900 lg:hidden">
           <div className="flex flex-col gap-4">
             {session?.user?.role && (
               <Badge variant="outline" className="w-fit text-xs uppercase text-indigo-700">
