@@ -19,6 +19,7 @@ export const CreateAttemptSchema = z.object({
   attemptNumber: z.number().int().min(1).max(3, "Attempt number must be 1-3"),
   weight: z.number().positive("Weight must be positive"),
   notes: z.string().optional(),
+  videoUrl: z.string().url().optional(),
 })
 
 // Update Attempt Schema

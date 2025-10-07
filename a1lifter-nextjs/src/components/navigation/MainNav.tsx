@@ -26,11 +26,14 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { NotificationsMenu } from "./NotificationsMenu"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { useI18n } from "@/components/i18n/I18nProvider"
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher"
 
 type Role = "ADMIN" | "ORGANIZER" | "JUDGE" | "ATHLETE"
 
 interface NavItem {
-  label: string
+  labelKey: string
+  defaultLabel: string
   href: string
   icon: ComponentType<SVGProps<SVGSVGElement>>
   roles?: Role[]
@@ -41,47 +44,55 @@ const AUTH_FREE_ROUTES = ["/auth/signin", "/auth/signup"]
 
 const PRIVATE_NAV_ITEMS: NavItem[] = [
   {
-    label: "Dashboard",
+    labelKey: "nav.dashboard",
+    defaultLabel: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    label: "Events",
+    labelKey: "nav.events",
+    defaultLabel: "Events",
     href: "/events",
     icon: CalendarCheck,
     roles: ["ADMIN", "ORGANIZER"],
   },
   {
-    label: "Athletes",
+    labelKey: "nav.athletes",
+    defaultLabel: "Athletes",
     href: "/athletes",
     icon: Users,
     roles: ["ADMIN", "ORGANIZER"],
   },
   {
-    label: "Registrations",
+    labelKey: "nav.registrations",
+    defaultLabel: "Registrations",
     href: "/registrations",
     icon: ClipboardList,
     roles: ["ADMIN", "ORGANIZER", "ATHLETE"],
   },
   {
-    label: "Live",
+    labelKey: "nav.live",
+    defaultLabel: "Live",
     href: "/live",
     icon: PlayCircle,
   },
   {
-    label: "Judge",
+    labelKey: "nav.judge",
+    defaultLabel: "Judge",
     href: "/judge",
     icon: Gavel,
     roles: ["ADMIN", "ORGANIZER", "JUDGE"],
   },
   {
-    label: "Analytics",
+    labelKey: "nav.analytics",
+    defaultLabel: "Analytics",
     href: "/analytics",
     icon: BarChart3,
     roles: ["ADMIN", "ORGANIZER"],
   },
   {
-    label: "Settings",
+    labelKey: "nav.settings",
+    defaultLabel: "Settings",
     href: "/settings",
     icon: Settings,
   },
@@ -89,17 +100,20 @@ const PRIVATE_NAV_ITEMS: NavItem[] = [
 
 const PUBLIC_NAV_ITEMS: NavItem[] = [
   {
-    label: "Home",
+    labelKey: "nav.home",
+    defaultLabel: "Home",
     href: "/",
     icon: Home,
   },
   {
-    label: "Live Results",
+    labelKey: "nav.liveResults",
+    defaultLabel: "Live Results",
     href: "/live",
     icon: PlayCircle,
   },
   {
-    label: "Judge",
+    labelKey: "nav.judge",
+    defaultLabel: "Judge",
     href: "/judge",
     icon: Gavel,
   },
@@ -110,6 +124,7 @@ export function MainNav() {
   const router = useRouter()
   const { data: session } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { t } = useI18n()
 
   const isAuthRoute = pathname ? AUTH_FREE_ROUTES.some((route) => pathname.startsWith(route)) : false
 
@@ -151,7 +166,7 @@ export function MainNav() {
                 )}
               >
                 <Icon className="h-4 w-4" />
-                {item.label}
+                {t(item.labelKey, item.defaultLabel)}
               </span>
             </Link>
           </li>
@@ -167,7 +182,7 @@ export function MainNav() {
               )}
             >
               <PlusCircle className="h-4 w-4" />
-              New Event
+              {t("nav.newEvent", "New Event")}
             </span>
           </Link>
         </li>
@@ -209,7 +224,7 @@ export function MainNav() {
             <>
               <NotificationsMenu userId={session.user.id} />
               <span className="hidden text-sm text-slate-600 dark:text-slate-300 sm:inline">{session.user.email}</span>
-              <Button variant="ghost" size="icon" aria-label="Sign out" onClick={handleSignOut}>
+              <Button variant="ghost" size="icon" aria-label={t("nav.signOut", "Sign out")} onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
               </Button>
             </>
@@ -217,10 +232,11 @@ export function MainNav() {
             <Link href="/auth/signin">
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
                 <LogIn className="h-4 w-4" />
-                Sign in
+                {t("nav.signIn", "Sign in")}
               </Button>
             </Link>
           )}
+          <LanguageSwitcher />
 
           <Button
             variant="ghost"
@@ -253,13 +269,13 @@ export function MainNav() {
                 }}
               >
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t("nav.signOut", "Sign out")}
               </Button>
             ) : (
               <Link href="/auth/signin" onClick={() => setMobileOpen(false)}>
                 <Button className="mt-2 flex w-full items-center justify-center gap-2">
                   <LogIn className="h-4 w-4" />
-                  Sign in
+                  {t("nav.signIn", "Sign in")}
                 </Button>
               </Link>
             )}

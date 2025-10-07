@@ -97,6 +97,9 @@ export async function PATCH(
         endDate: body.endDate ? new Date(body.endDate) : undefined,
         location: body.location,
         maxAthletes: body.maxAthletes,
+        liveStreamUrl: body.liveStreamUrl,
+        liveStreamEmbed: body.liveStreamEmbed,
+        liveStreamActive: typeof body.liveStreamActive === "boolean" ? body.liveStreamActive : undefined,
       },
       include: {
         organizer: {

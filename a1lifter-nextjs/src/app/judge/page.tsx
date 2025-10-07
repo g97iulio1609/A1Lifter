@@ -249,6 +249,20 @@ export default function JudgePage() {
                         </div>
                       </div>
 
+                      {currentAttempt.videoUrl && (
+                        <div>
+                          <div className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-black">
+                            <video controls className="h-full w-full">
+                              <source src={currentAttempt.videoUrl} />
+                              Your browser does not support embedded videos.
+                            </video>
+                          </div>
+                          <p className="mt-2 text-center text-sm text-gray-600">
+                            Video evidence attached for review
+                          </p>
+                        </div>
+                      )}
+
                       {currentAttempt.registration && (
                         <div className="grid grid-cols-3 gap-4 text-center">
                           {currentAttempt.registration.lot && (

@@ -15,6 +15,11 @@
 - ✅ **Sistema Notifiche** automatico
 - ✅ **Gestione Record** personali e di gara
 - ✅ **API RESTful** complete
+- ✅ **Upload video tentativi** con storage Supabase
+- ✅ **Integrazione livestream** per eventi attivi
+- ✅ **Analytics avanzate** con grafici Recharts
+- ✅ **Internazionalizzazione** (🇬🇧 English / 🇮🇹 Italiano)
+- ✅ **Notifiche email** per tentativi e iscrizioni
 
 ## 🚀 Quick Start
 
@@ -66,6 +71,14 @@ Open [http://localhost:3000](http://localhost:3000)
 - **[PRODUCTION_COMPLETE.md](../PRODUCTION_COMPLETE.md)** - Guida completa
 - **[SETUP.md](./SETUP.md)** - Setup dettagliato
 - **[.env.example](./.env.example)** - Variabili d'ambiente
+
+### 🔐 Nuove variabili d'ambiente
+
+Per abilitare le nuove integrazioni assicurati di configurare anche:
+
+- `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SERVICE_KEY` – richiesto per l'upload dei video tentativi nel bucket `attempt-videos`
+- `SUPABASE_ATTEMPT_VIDEO_BUCKET` – nome bucket opzionale (default `attempt-videos`)
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` – credenziali SMTP per l'invio delle email transazionali
 
 ## 🌐 Deploy
 

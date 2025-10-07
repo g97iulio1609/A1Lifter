@@ -17,7 +17,7 @@ export default function CreateEventPage() {
   const { data: session } = useSession()
   const createEvent = useCreateEvent()
 
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     name: "",
     description: "",
     sport: "POWERLIFTING",
@@ -26,7 +26,12 @@ export default function CreateEventPage() {
     endDate: "",
     location: "",
     maxAthletes: "",
-  })
+    liveStreamUrl: "",
+    liveStreamEmbed: "",
+    liveStreamActive: false,
+  }
+
+  const [formData, setFormData] = useState(initialFormState)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +52,9 @@ export default function CreateEventPage() {
         location: formData.location,
         maxAthletes: formData.maxAthletes ? parseInt(formData.maxAthletes) : undefined,
         organizerId: session.user.id,
+        liveStreamUrl: formData.liveStreamUrl || undefined,
+        liveStreamEmbed: formData.liveStreamEmbed || undefined,
+        liveStreamActive: formData.liveStreamActive,
       })
 
       toast.success("Event created successfully!")
@@ -57,7 +65,7 @@ export default function CreateEventPage() {
     }
   }
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = <K extends keyof typeof initialFormState>(field: K, value: typeof initialFormState[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -116,6 +124,27 @@ export default function CreateEventPage() {
                     onChange={(e) => handleChange("location", e.target.value)}
                     placeholder="e.g. Rome, Italy"
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="liveStreamUrl">Live stream URL</Label>
+                  <Input
+                    id="liveStreamUrl"
+                    value={formData.liveStreamUrl}
+                    onChange={(e) => handleChange("liveStreamUrl", e.target.value)}
+                    placeholder="https://"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="liveStreamEmbed">Embed URL</Label>
+                  <Input
+                    id="liveStreamEmbed"
+                    value={formData.liveStreamEmbed}
+                    onChange={(e) => handleChange("liveStreamEmbed", e.target.value)}
+                    placeholder="https://player.example.com/embed/..."
                   />
                 </div>
               </div>
@@ -200,6 +229,19 @@ export default function CreateEventPage() {
                   onChange={(e) => handleChange("maxAthletes", e.target.value)}
                   placeholder="e.g. 100"
                 />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  id="liveStreamActive"
+                  type="checkbox"
+                  checked={formData.liveStreamActive}
+                  onChange={(e) => handleChange("liveStreamActive", e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Label htmlFor="liveStreamActive" className="text-sm text-gray-600">
+                  Feature this event on the live streaming hub
+                </Label>
               </div>
 
               <div className="flex justify-end space-x-4 pt-4">
