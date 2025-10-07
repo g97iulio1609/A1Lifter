@@ -34,6 +34,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([isActive])
+  @@index([role, isActive], map: "users_role_is_active_idx")
   @@map("users")
 }
 
@@ -101,6 +102,7 @@ model Event {
   @@index([sport])
   @@index([status])
   @@index([startDate])
+  @@index([status, startDate], map: "events_status_start_date_idx")
   @@index([isDeleted])
   @@map("events")
 }
@@ -118,6 +120,7 @@ model EventSession {
 
   @@index([eventId])
   @@index([startTime])
+  @@index([eventId, order], map: "event_sessions_event_order_idx")
   @@map("event_sessions")
 }
 
@@ -166,6 +169,8 @@ model Registration {
   @@index([eventId])
   @@index([categoryId])
   @@index([status])
+  @@index([eventId, status], map: "registrations_event_status_idx")
+  @@index([eventId, categoryId], map: "registrations_event_category_idx")
   @@map("registrations")
 }
 
@@ -207,6 +212,8 @@ model Attempt {
   @@index([lockedBy])
   @@index([judgedBy])
   @@index([timestamp])
+  @@index([eventId, status, timestamp], map: "attempts_event_status_ts_idx")
+  @@index([eventId, result, lift], map: "attempts_event_result_lift_idx")
   @@map("attempts")
 }
 
@@ -229,6 +236,7 @@ model JudgeAssignment {
   @@unique([userId, eventId])
   @@index([userId])
   @@index([eventId])
+  @@index([eventId, role], map: "judge_assignments_event_role_idx")
   @@map("judge_assignments")
 }
 
@@ -252,6 +260,7 @@ model Record {
   @@index([categoryId])
   @@index([lift])
   @@index([recordType])
+  @@index([eventId, categoryId, lift], map: "records_event_category_lift_idx")
   @@map("records")
 }
 
@@ -270,6 +279,7 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+  @@index([userId, isRead, createdAt], map: "notifications_user_read_created_idx")
   @@map("notifications")
 }
 

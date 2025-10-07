@@ -8,6 +8,10 @@ We use **Prisma Migrate** for version-controlled schema changes:
 - Development: `prisma migrate dev`
 - Production: `prisma migrate deploy`
 
+### Milestone 6 Optimisations
+
+Migration `20251006234000_database_optimizations` introduces composite indexes that specifically target high traffic workflows (live attempts, judge scheduling, inbox triage). Apply the migration with `npm run db:migrate:deploy` to ensure dashboards benefit from the new indexes. See `docs/PERFORMANCE.md` for the detailed index matrix.
+
 ### Initial Setup (New Environment)
 
 1. **Set Environment Variables**:
@@ -124,6 +128,7 @@ If you see "drift detected" warnings:
 5. **Keep migrations small** and focused on single changes
 6. **Never edit** applied migrations
 7. **Use transactions** for data migrations
+8. **Monitor new composite indexes** (`20251006234000_database_optimizations`) with `EXPLAIN ANALYZE` to ensure planners pick the intended paths.
 
 ## Schema Conventions
 

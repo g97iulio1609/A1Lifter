@@ -1,30 +1,43 @@
-/**
- * Simple in-memory cache with TTL support
- * For production with multiple instances, use Redis or similar
- */
+import type { Redis } from 'ioredis'
+import { getRedisClient, getRedisNamespace, isRedisEnabled } from './redis'
+import { logger } from './logger'
+
+type CacheValue<T> = T | undefined
+
+type CacheProvider = 'memory' | 'redis'
+
+export interface CacheClient {
+  get<T>(key: string): Promise<CacheValue<T>>
+  set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>
+  delete(key: string): Promise<void>
+  deletePattern(pattern: string): Promise<void>
+  clear(): Promise<void>
+  size(): Promise<number>
+  readonly provider: CacheProvider
+}
 
 interface CacheEntry<T> {
   value: T
   expiresAt: number
 }
 
-class MemoryCache {
+class MemoryCache implements CacheClient {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private cache: Map<string, CacheEntry<any>> = new Map()
   private cleanupInterval: NodeJS.Timeout | null = null
+  readonly provider: CacheProvider = 'memory'
 
   constructor() {
-    // Clean up expired entries every minute
     this.cleanupInterval = setInterval(() => {
-      this.cleanup()
+      this.cleanup().catch((error) => {
+        logger.error('Memory cache cleanup failed', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      })
     }, 60000)
   }
 
-  /**
-   * Get a value from cache
-   * Returns undefined if not found or expired
-   */
-  get<T>(key: string): T | undefined {
+  async get<T>(key: string): Promise<CacheValue<T>> {
     const entry = this.cache.get(key)
 
     if (!entry) {
@@ -39,10 +52,11 @@ class MemoryCache {
     return entry.value
   }
 
-  /**
-   * Set a value in cache with TTL in seconds
-   */
-  set<T>(key: string, value: T, ttlSeconds: number = 300): void {
+  async set<T>(key: string, value: T, ttlSeconds: number = 300): Promise<void> {
+    if (typeof ttlSeconds !== 'number' || Number.isNaN(ttlSeconds)) {
+      ttlSeconds = 300
+    }
+
     const expiresAt = Date.now() + ttlSeconds * 1000
 
     this.cache.set(key, {
@@ -51,17 +65,11 @@ class MemoryCache {
     })
   }
 
-  /**
-   * Delete a value from cache
-   */
-  delete(key: string): void {
+  async delete(key: string): Promise<void> {
     this.cache.delete(key)
   }
 
-  /**
-   * Delete all keys matching a pattern
-   */
-  deletePattern(pattern: string): void {
+  async deletePattern(pattern: string): Promise<void> {
     const regex = new RegExp(pattern.replace(/\*/g, '.*'))
     const keysToDelete: string[] = []
 
@@ -76,24 +84,23 @@ class MemoryCache {
     }
   }
 
-  /**
-   * Clear all cache entries
-   */
-  clear(): void {
+  async clear(): Promise<void> {
     this.cache.clear()
   }
 
-  /**
-   * Get cache size
-   */
-  size(): number {
+  async size(): Promise<number> {
     return this.cache.size
   }
 
-  /**
-   * Remove expired entries
-   */
-  private cleanup(): void {
+  async destroy(): Promise<void> {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
+    await this.clear()
+  }
+
+  private async cleanup(): Promise<void> {
     const now = Date.now()
     const keysToDelete: string[] = []
 
@@ -107,25 +114,145 @@ class MemoryCache {
       this.cache.delete(key)
     }
   }
+}
 
-  /**
-   * Stop cleanup interval
-   */
-  destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval)
-      this.cleanupInterval = null
+class RedisCache implements CacheClient {
+  private readonly namespace: string
+  readonly provider: CacheProvider = 'redis'
+
+  constructor(private readonly client: Redis, namespace: string) {
+    this.namespace = namespace
+  }
+
+  private keyWithNamespace(key: string) {
+    return `${this.namespace}:${key}`
+  }
+
+  private patternWithNamespace(pattern: string) {
+    if (!pattern.includes('*')) {
+      return this.keyWithNamespace(pattern)
     }
+
+    return `${this.namespace}:${pattern}`
+  }
+
+  async get<T>(key: string): Promise<CacheValue<T>> {
+    const namespacedKey = this.keyWithNamespace(key)
+
+    try {
+      const value = await this.client.get(namespacedKey)
+      if (!value) {
+        return undefined
+      }
+
+      return JSON.parse(value) as T
+    } catch (error) {
+      logger.error('Redis cache get failed', {
+        key,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return undefined
+    }
+  }
+
+  async set<T>(key: string, value: T, ttlSeconds: number = 300): Promise<void> {
+    if (value === undefined) {
+      return
+    }
+
+    const namespacedKey = this.keyWithNamespace(key)
+
+    try {
+      const serialized = JSON.stringify(value)
+      if (serialized === undefined) {
+        return
+      }
+
+      if (ttlSeconds && ttlSeconds > 0) {
+        await this.client.set(namespacedKey, serialized, 'EX', Math.floor(ttlSeconds))
+      } else {
+        await this.client.set(namespacedKey, serialized)
+      }
+    } catch (error) {
+      logger.error('Redis cache set failed', {
+        key,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    try {
+      await this.client.del(this.keyWithNamespace(key))
+    } catch (error) {
+      logger.error('Redis cache delete failed', {
+        key,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  async deletePattern(pattern: string): Promise<void> {
+    try {
+      const namespacedPattern = this.patternWithNamespace(pattern)
+      let cursor = '0'
+      do {
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          namespacedPattern,
+          'COUNT',
+          100
+        )
+
+        if (keys.length) {
+          const pipeline = this.client.pipeline()
+          keys.forEach((key) => pipeline.del(key))
+          await pipeline.exec()
+        }
+
+        cursor = nextCursor
+      } while (cursor !== '0')
+    } catch (error) {
+      logger.error('Redis cache delete pattern failed', {
+        pattern,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  async clear(): Promise<void> {
+    await this.deletePattern('*')
+  }
+
+  async size(): Promise<number> {
+    let cursor = '0'
+    let count = 0
+    const namespacedPattern = this.patternWithNamespace('*')
+
+    do {
+      const [nextCursor, keys] = await this.client.scan(cursor, 'MATCH', namespacedPattern, 'COUNT', 100)
+      count += keys.length
+      cursor = nextCursor
+    } while (cursor !== '0')
+
+    return count
   }
 }
 
-// Global cache instance
-export const cache = new MemoryCache()
+function createCacheClient(): CacheClient {
+  const redisClient = getRedisClient()
+  if (redisClient && isRedisEnabled()) {
+    logger.info('Using Redis cache provider')
+    return new RedisCache(redisClient, getRedisNamespace())
+  }
 
-/**
- * Cache decorator for async functions
- * Automatically caches function results based on arguments
- */
+  logger.info('Using in-memory cache provider')
+  return new MemoryCache()
+}
+
+export const cache = createCacheClient()
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withCache<T extends (...args: any[]) => Promise<any>>(
   fn: T,
@@ -135,36 +262,29 @@ export function withCache<T extends (...args: any[]) => Promise<any>>(
     keyGenerator?: (...args: Parameters<T>) => string
   }
 ): T {
-  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+  return (async (...args: Parameters<T>): Promise<Awaited<ReturnType<T>>> => {
     const key = options.keyGenerator
       ? `${options.keyPrefix}:${options.keyGenerator(...args)}`
       : `${options.keyPrefix}:${JSON.stringify(args)}`
 
-    // Try to get from cache
-    const cached = cache.get<ReturnType<T>>(key)
+    const cached = await cache.get<Awaited<ReturnType<T>>>(key)
     if (cached !== undefined) {
       return cached
     }
 
-    // Execute function and cache result
     const result = await fn(...args)
-    cache.set(key, result, options.ttl || 300)
+    await cache.set(key, result, options.ttl ?? 300)
 
     return result
   }) as T
 }
 
-/**
- * Cache key generators for common patterns
- */
 export const cacheKeys = {
   event: (id: string) => `event:${id}`,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  eventList: (filters?: Record<string, any>) =>
-    `events:${filters ? JSON.stringify(filters) : 'all'}`,
+  eventList: (filters?: Record<string, any>) => `events:${filters ? JSON.stringify(filters) : 'all'}`,
   athlete: (id: string) => `athlete:${id}`,
-  athleteStats: (id: string, eventId?: string) =>
-    `athlete:${id}:stats${eventId ? `:${eventId}` : ''}`,
+  athleteStats: (id: string, eventId?: string) => `athlete:${id}:stats${eventId ? `:${eventId}` : ''}`,
   leaderboard: (eventId: string, categoryId?: string) =>
     `leaderboard:${eventId}${categoryId ? `:${categoryId}` : ''}`,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -175,33 +295,32 @@ export const cacheKeys = {
     `notifications:${userId}${unreadOnly ? ':unread' : ''}`,
 }
 
-/**
- * Cache invalidation helpers
- */
 export const invalidateCache = {
-  event: (id: string) => {
-    cache.delete(cacheKeys.event(id))
-    cache.deletePattern(`events:*`)
-    cache.deletePattern(`leaderboard:${id}*`)
+  event: async (id: string) => {
+    await cache.delete(cacheKeys.event(id))
+    await cache.deletePattern(`events:*`)
+    await cache.deletePattern(`leaderboard:${id}*`)
   },
-  athlete: (id: string) => {
-    cache.delete(cacheKeys.athlete(id))
-    cache.deletePattern(`athlete:${id}:*`)
+  athlete: async (id: string) => {
+    await cache.delete(cacheKeys.athlete(id))
+    await cache.deletePattern(`athlete:${id}:*`)
   },
-  leaderboard: (eventId: string) => {
-    cache.deletePattern(`leaderboard:${eventId}*`)
+  leaderboard: async (eventId: string) => {
+    await cache.deletePattern(`leaderboard:${eventId}*`)
   },
-  attempts: (eventId: string) => {
-    cache.deletePattern(`attempts:${eventId}*`)
-    cache.deletePattern(`leaderboard:${eventId}*`)
+  attempts: async (eventId: string) => {
+    await cache.deletePattern(`attempts:${eventId}*`)
+    await cache.deletePattern(`leaderboard:${eventId}*`)
   },
-  dashboard: () => {
-    cache.delete(cacheKeys.dashboard())
+  dashboard: async () => {
+    await cache.delete(cacheKeys.dashboard())
   },
-  notifications: (userId: string) => {
-    cache.deletePattern(`notifications:${userId}*`)
+  notifications: async (userId: string) => {
+    await cache.deletePattern(`notifications:${userId}*`)
   },
-  all: () => {
-    cache.clear()
+  all: async () => {
+    await cache.clear()
   },
 }
+
+export const cacheProvider = cache.provider

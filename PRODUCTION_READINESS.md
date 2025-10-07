@@ -93,6 +93,8 @@
 - Database connection pooling
 - Secure secret management
 - Feature flags support
+- Redis cache configuration (`REDIS_URL`, `REDIS_NAMESPACE`)
+- Optional CDN asset prefix (`NEXT_PUBLIC_CDN_URL`)
 
 ### CI/CD Pipeline
 - GitHub Actions workflow
@@ -100,12 +102,15 @@
 - Security scanning
 - Deployment to Vercel
 - Health checks
+- Load & stress testing harness (`npm run perf:load`)
 
 ### Monitoring
 - `/api/health` - Service health status
 - `/api/ready` - Database readiness
 - Performance metrics
 - Error tracking ready
+- Redis health telemetry
+- CDN cache analytics dashboard
 
 ## 📝 Documentation
 
@@ -169,6 +174,16 @@
    curl https://your-domain.com/api/ready
    ```
 
+6. **Enable Caching & Backups**
+   ```bash
+   # Configure Redis / CDN variables
+   vercel env add REDIS_URL
+   vercel env add NEXT_PUBLIC_CDN_URL
+
+   # Schedule backups & review playbook
+   cat docs/BACKUP_AND_DR.md
+   ```
+
 ## ✅ Production Ready Checklist
 
 - [x] Database schema optimized with indexes
@@ -187,6 +202,10 @@
 - [x] Soft delete for audit trail
 - [x] Notification system
 - [x] Role-based access control
+- [x] Distributed cache configured (Redis fallback ready)
+- [x] CDN asset strategy documented
+- [x] Load testing baseline captured
+- [x] Backup & disaster recovery playbook published
 
 ## 🎯 Next Steps
 

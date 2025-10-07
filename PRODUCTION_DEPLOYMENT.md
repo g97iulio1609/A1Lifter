@@ -119,7 +119,32 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 # App Configuration
 NEXT_PUBLIC_APP_NAME=A1Lifter
 NEXT_PUBLIC_APP_DESCRIPTION=Multisport Competition Management Platform
+
+# Caching (Redis)
+REDIS_URL=redis://user:password@host:6379/0
+# Optional: REDIS_PASSWORD=super-secret
+# Optional: REDIS_TLS=true
+REDIS_NAMESPACE=a1lifter
+
+# CDN (optional)
+NEXT_PUBLIC_CDN_URL=https://cdn.example.com/assets
 ```
+
+## Redis Cache (Multi-instance Ready)
+
+1. Provision a managed Redis instance (Upstash, Redis Cloud, Elasticache, etc.).
+2. Populate the environment variables above.
+3. Deploy – the application auto-detects Redis and switches `cacheProvider` to `redis`.
+4. Monitor connection health via logs (`Redis connection established`) and metrics.
+
+The cache namespace defaults to `a1lifter` to support shared clusters. Override `REDIS_NAMESPACE` if you host multiple environments on the same Redis instance.
+
+## CDN Configuration
+
+1. Point your CDN origin to the Vercel deployment (or container load balancer).
+2. Configure the CDN to cache static assets and respect origin cache headers.
+3. Set `NEXT_PUBLIC_CDN_URL` (or `CDN_URL`) to the CDN edge URL; the app automatically prefixes `_next` assets, image optimisation routes, and emits immutable cache headers.
+4. Purge CDN caches as part of your deployment automation after each release.
 
 ## Performance Monitoring
 
@@ -261,7 +286,16 @@ const logger = winston.createLogger({
 export default logger
 ```
 
+## Load & Stress Testing
+
+- Use the bundled `npm run perf:load` script to execute baseline and stress phases (powered by `autocannon`).
+- Configure `LOAD_TEST_BASE_URL`, `LOAD_TEST_CONNECTIONS`, `LOAD_TEST_DURATION`, `LOAD_TEST_COOKIE`, and `LOAD_TEST_AUTHORIZATION` as needed.
+- Store the JSON output alongside release artifacts to track latency and throughput trends.
+- Automate the command in CI (nightly) for regression detection.
+
 ## Backup Strategy
+
+Define explicit recovery targets: **RPO ≤ 1 hour**, **RTO ≤ 30 minutes**. Verify that automated Supabase backups satisfy the RPO and rehearse full restores quarterly to keep the RTO realistic.
 
 ### Database Backups
 ```bash

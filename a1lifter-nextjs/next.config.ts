@@ -1,5 +1,32 @@
 import { withSentryConfig } from '@sentry/nextjs'
 
+const rawCdnUrl = process.env.NEXT_PUBLIC_CDN_URL || process.env.CDN_URL || ''
+
+let assetPrefix: string | undefined
+const remoteImagePatterns: { protocol: 'http' | 'https'; hostname: string; pathname: string }[] = []
+
+if (rawCdnUrl) {
+  try {
+    const sanitizedUrl = rawCdnUrl.replace(/\/$/, '')
+    const parsed = new URL(sanitizedUrl)
+    const protocol = parsed.protocol.replace(':', '')
+
+    if (protocol === 'http' || protocol === 'https') {
+      assetPrefix = sanitizedUrl
+
+      const pathname = parsed.pathname === '/' ? '/**' : `${parsed.pathname.replace(/\/$/, '')}/**`
+      remoteImagePatterns.push({
+        protocol,
+        hostname: parsed.hostname,
+        pathname,
+      })
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Invalid CDN URL provided. Ignoring asset prefix configuration.', error)
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable experimental features for production optimization
@@ -12,7 +39,11 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 3600,
+    remotePatterns: remoteImagePatterns,
   },
+
+  assetPrefix,
 
   // Security headers
   async headers() {
@@ -35,6 +66,42 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/image',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      {
+        source: '/:path*\\.(js|css)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/:path*\\.(svg|png|jpg|jpeg|gif|ico|webp|avif|ttf|woff|woff2)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=86400',
           },
         ],
       },

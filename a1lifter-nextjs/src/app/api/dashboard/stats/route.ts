@@ -23,7 +23,7 @@ export async function GET() {
 
     // Try to get from cache first
     const cacheKey = cacheKeys.dashboard()
-    const cached = cache.get(cacheKey)
+    const cached = await cache.get(cacheKey)
 
     if (cached) {
       profiler.measure("cache-hit", "start")
@@ -139,7 +139,7 @@ export async function GET() {
     }
 
     // Cache for 5 minutes
-    cache.set(cacheKey, stats, 300)
+    await cache.set(cacheKey, stats, 300)
 
     profiler.measure("total", "start")
     profiler.logSummary()
