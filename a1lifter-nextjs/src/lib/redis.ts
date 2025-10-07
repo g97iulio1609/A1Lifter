@@ -74,9 +74,7 @@ function createRedisClient(url: string): RedisClient {
   })
 
   client.on('reconnecting', () => {
-    logger.warn('Redis reconnecting', {
-      attempt: client.retryAttempts,
-    })
+    logger.warn('Redis reconnecting')
   })
 
   client.on('end', () => {

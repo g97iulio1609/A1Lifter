@@ -115,14 +115,12 @@ async function runScenario(scenario: Scenario) {
       connections: phase.connections,
       duration: phase.duration,
       body: scenario.body,
-      warmup: {
-        duration: Math.min(10, Math.floor(phase.duration / 3)),
-        connections: Math.min(phase.connections, 10),
-      },
+      // Note: warmup not supported in current autocannon types
       timeout: 30,
     })
 
-    const [result] = await once(instance, 'done') as [AutocannonResult]
+    const results = await once(instance, 'done')
+    const result = results[0] as AutocannonResult
     printResult(phase, result)
   }
 }
