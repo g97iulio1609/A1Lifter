@@ -10,12 +10,12 @@ export const metadata: Metadata = {
   description: "Multisport competition management platform for powerlifting, weightlifting, strongman, and more",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const localeCookie = cookieStore.get("locale")?.value as Locale | undefined
   const locale = localeCookie && locales.includes(localeCookie) ? localeCookie : defaultLocale
 
