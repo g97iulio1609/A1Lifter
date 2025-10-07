@@ -19,6 +19,12 @@ This runbook provides procedures for responding to common incidents in the A1Lif
 
 ## Common Incidents
 
+### Backup / Restore Support
+
+- Follow the playbook in `docs/BACKUP_AND_DR.md` for scheduled tasks, RPO/RTO targets, and restoration steps.
+- Use `npm run perf:load` before closing incidents that require recovery to confirm performance parity.
+- After any restore, flush the shared Redis cache with `tsx scripts/cache/flush.ts` to prevent stale reads.
+
 ### 1. Application is Down (P0)
 
 **Symptoms**: Health check failing, 500 errors, no response
